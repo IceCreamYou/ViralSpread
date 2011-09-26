@@ -31,6 +31,11 @@ public class Person {
 		g.fillOval((int) getX(), (int) getY(), RADIUS*2, RADIUS*2);
 		g.setColor(Color.BLACK);
 		g.drawOval((int) getX(), (int) getY(), RADIUS*2, RADIUS*2);
+		if (ViralSpread.debug) { // This is debugging code. It doesn't have to be efficient.
+			g.setFont(new java.awt.Font("Arial", java.awt.Font.PLAIN, 10));
+			g.setColor(new Color(255-v.getColor().getRed(), 255-v.getColor().getGreen(), 255-v.getColor().getBlue()));
+			g.drawString(((int) getX()) +","+ ((int) getY()), (int) getX()+2, (int) getY() + RADIUS + 6);
+		}
 	}
 
 	public void collide(Person ball) {
@@ -141,6 +146,11 @@ public class Person {
 	
 	public boolean samePosition(Person other) {
 		return getX() == other.getX() && getY() == other.getY();
+	}
+	
+	@Override
+	public String toString() {
+		return getVirus().getName() +":("+ Math.round(getX()) +", "+ Math.round(getY()) +")";
 	}
 
 }

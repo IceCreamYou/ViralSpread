@@ -32,6 +32,8 @@ import javax.swing.SwingUtilities;
 // NOTE: Example code to save the generated graph: http://www.exampledepot.com/egs/javax.imageio/Graphic2File.html
 public class ViralSpread {
 	
+	public static boolean debug = true;
+	
 	private static final double
 		SLOW_MAX_VELOCITY = 3.0,
 		MEDIUM_MAX_VELOCITY = 5.5,

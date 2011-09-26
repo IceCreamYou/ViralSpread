@@ -136,6 +136,13 @@ public class Statistics {
 	}
 	
 	public static HashSet<LinkedList<Person>> updateComponents() {
+		if (ViralSpread.debug) { // Print out all of the connections.
+			System.out.println("----");
+			for (Person[] c : hardConnections) {
+				System.out.println(c[0] +"\t\t"+ c[1]);
+			}
+		}
+		
 		HashSet<LinkedList<Person>> temp = new HashSet<LinkedList<Person>>();
 		for (Person[] connection : hardConnections) {
 			Person a = connection[0], b = connection[1];
@@ -176,11 +183,17 @@ public class Statistics {
 			}
 		}
 		components = temp;
-		/*
-		System.out.println("--");
-		for (LinkedList<Person> component : components)
-			System.out.println(component.size() +" "+ component.get(0).getVirus());
-		 */
+		
+		if (ViralSpread.debug) { // Print out each component.
+			System.out.println();
+			for (LinkedList<Person> component : components) {
+				System.out.println(component.size() +" "+ component.get(0).getVirus());
+				for (Person p : component) {
+					System.out.println("\t"+ p);
+				}
+			}
+		}
+		
 		return components;
 	}
 	
