@@ -204,6 +204,7 @@ public class Statistics {
 			}
 			// If both nodes are in the collection, don't revisit the connection
 			else if (objectInCollection(connection[0], component) && objectInCollection(connection[1], component)) {
+				connectionsNotYetInComponents.remove(connection);
 				continue;
 			}
 			// If this connection doesn't connect to the component as we currently know it, save it for later

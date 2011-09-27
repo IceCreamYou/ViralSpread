@@ -13,8 +13,6 @@ import javax.swing.JPanel;
 import javax.swing.SwingUtilities;
 
 
-// -----------1.0-------------
-// TODO: Display edge probability (num. connections / (peopleCount*peopleCount))
 // -----------2.0-------------
 // TODO: Output data (evolution of each statistic over time) in a file when the simulation is complete
 // TODO: Allow saving graph(s) when the simulation is complete
