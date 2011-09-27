@@ -14,7 +14,7 @@ import javax.swing.SwingUtilities;
 
 
 // -----------1.0-------------
-// TODO: Fix component calculation
+// TODO: Display edge probability (num. connections / (peopleCount*peopleCount))
 // -----------2.0-------------
 // TODO: Output data (evolution of each statistic over time) in a file when the simulation is complete
 // TODO: Allow saving graph(s) when the simulation is complete
@@ -32,7 +32,7 @@ import javax.swing.SwingUtilities;
 // NOTE: Example code to save the generated graph: http://www.exampledepot.com/egs/javax.imageio/Graphic2File.html
 public class ViralSpread {
 	
-	public static boolean debug = true;
+	public static boolean debug = false;
 	
 	private static final double
 		SLOW_MAX_VELOCITY = 3.0,
@@ -90,13 +90,13 @@ public class ViralSpread {
 		infoPanel.setMinimumSize(d);
 		infoPanel.setPreferredSize(d);
 		frame.add(infoPanel, BorderLayout.LINE_END);
-		final JLabel numComponents = new JLabel("Number of components (buggy): 0");
-		final JLabel largestComponent = new JLabel("Largest component (buggy): 0");
+		final JLabel numComponents = new JLabel("Number of components: 0");
+		final JLabel largestComponent = new JLabel("Largest component: 0");
 		TimerLabel timeElapsed = new TimerLabel(200, new TimerListener() {
 			public void execute(TimerLabel parent) {
 				parent.setText(Statistics.getElapsedTime());
-				numComponents.setText("Number of components (buggy): "+ Statistics.getNumComponents());
-				largestComponent.setText("Largest component (buggy): "+ Statistics.getLargestConnectedComponent());
+				numComponents.setText("Number of components: "+ Statistics.getNumComponents());
+				largestComponent.setText("Largest component: "+ Statistics.getLargestConnectedComponent());
 			}
 		});
 		infoPanel.add(timeElapsed);
@@ -109,6 +109,7 @@ public class ViralSpread {
 		final JLabel hardSoftRatio = new JLabel("Hard:soft ratio: 0");
 		final JLabel hardPerNode = new JLabel("Avg. hard connections per node: 0");
 		final JLabel maxPerNode = new JLabel("Max connections: 0");
+		final JLabel edgeProbability = new JLabel("Edge probability: 0");
 		final JLabel maxDistDisplay = new JLabel("Largest connection distance: 0");
 		final JLabel avgDistDisplay = new JLabel("Average connection distance: 0");
 		TimerLabel virusCountTable = new TimerLabel(1000, new TimerListener() {
@@ -118,11 +119,13 @@ public class ViralSpread {
 				int numSoft = Statistics.getNumSoftConnections();
 				double hsRatio = Math.round((numSoft == 0 ? 0 : numHard / (double) numSoft) * 1000) / 1000.0;
 				double perNode = Math.round((numHard / (double) peopleCount) * 1000) / 1000.0;
+				double edgeProb = Math.round(numHard / (double) (peopleCount*peopleCount) * 1000) / 1000.0;
 				numHardConnections.setText("Number of hard connections: "+ numHard);
 				numSoftConnections.setText("Number of soft connections: "+ numSoft);
 				hardSoftRatio.setText("Hard:soft ratio: "+ hsRatio);
 				hardPerNode.setText("Avg. hard connections per node: "+ perNode);
 				maxPerNode.setText("Max connections: "+ Statistics.getMaxConnections());
+				edgeProbability.setText("Edge probability: "+ edgeProb);
 				maxDistDisplay.setText("Largest connection distance: "+ Statistics.getLargestPhysicalDistance());
 				avgDistDisplay.setText("Average connection distance: "+ Statistics.getAveragePhysicalDistance());
 			}
@@ -133,6 +136,7 @@ public class ViralSpread {
 		infoPanel.add(hardSoftRatio);
 		infoPanel.add(hardPerNode);
 		infoPanel.add(maxPerNode);
+		infoPanel.add(edgeProbability);
 		infoPanel.add(maxDistDisplay);
 		infoPanel.add(avgDistDisplay);
 		infoPanel.add(numComponents);

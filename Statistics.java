@@ -135,7 +135,7 @@ public class Statistics {
 		updateComponents();
 	}
 	
-	public static HashSet<LinkedList<Person>> updateComponents() {
+	public static void updateComponents() {
 		if (ViralSpread.debug) { // Print out all of the connections.
 			System.out.println("----");
 			for (Person[] c : hardConnections) {
@@ -143,46 +143,14 @@ public class Statistics {
 			}
 		}
 		
-		HashSet<LinkedList<Person>> temp = new HashSet<LinkedList<Person>>();
-		for (Person[] connection : hardConnections) {
-			Person a = connection[0], b = connection[1];
-			boolean bFound = false, aFound = false;
-			// If we've already added one of the nodes to a component, add the other one to it.
-			for (LinkedList<Person> component : temp) {
-				boolean bInComponent = false, aInComponent = false;
-				for (Person p : component) {
-					if (p.samePosition(b)) {
-						bInComponent = true;
-					}
-					if (p.samePosition(a)) {
-						aInComponent = true;
-					}
-				}
-				if (bInComponent && !aInComponent) {
-					component.add(a);
-					bFound = true;
-					break;
-				}
-				else if (!bInComponent && aInComponent) {
-					component.add(b);
-					aFound = true;
-					break;
-				}
-				else if (bInComponent && aInComponent) {
-					aFound = true;
-					bFound = true;
-					break;
-				}
-			}
-			// If neither node is in a component, create a new component containing both nodes.
-			if (!bFound && !aFound) {
-				LinkedList<Person> newComponent = new LinkedList<Person>();
-				newComponent.add(b);
-				newComponent.add(a);
-				temp.add(newComponent);
-			}
-		}
-		components = temp;
+		// Create an ordered copy of the list of connections so that we can modify it.
+		LinkedList<Person[]> connectionsCopy = new LinkedList<Person[]>();
+		for (Person[] connection : hardConnections)
+			connectionsCopy.add(connection);
+		// Discover the set of components.
+		HashSet<LinkedList<Person>> newComponents = new HashSet<LinkedList<Person>>();
+		updateComponentConnections(newComponents, connectionsCopy);
+		components = newComponents;
 		
 		if (ViralSpread.debug) { // Print out each component.
 			System.out.println();
@@ -193,8 +161,71 @@ public class Statistics {
 				}
 			}
 		}
-		
-		return components;
+	}
+	
+	private static void updateComponentConnections(
+			HashSet<LinkedList<Person>> components,
+			LinkedList<Person[]> connections
+			) {
+		// We don't have any components yet among our list of connections,
+		// and none of the nodes in the connections should be in an existing component,
+		// so start the chain by adding the nodes in the first connection to a new component.
+		LinkedList<Person> component = new LinkedList<Person>();
+		Person[] connection = connections.get(0);
+		component.add(connection[0]);
+		component.add(connection[1]);
+		// Remove the connection from the list since it has already been processed
+		connections.remove(connection);
+		// Look at all the connections and add them to the component if they are part of it.
+		LinkedList<Person[]> connectionsNotYetInComponents = new LinkedList<Person[]>();
+		processComponentConnections(connections, component, connectionsNotYetInComponents);
+		// We've now finished building the component, so add it to our set of components.
+		components.add(component);
+		// Repeat the process starting with the (now reduced) copy instead of the list of all connections.
+		if (connectionsNotYetInComponents.size() > 0)
+			updateComponentConnections(components, connectionsNotYetInComponents);
+	}
+	
+	private static void processComponentConnections(
+			LinkedList<Person[]> connections,
+			LinkedList<Person> component,
+			LinkedList<Person[]> connectionsNotYetInComponents) {
+		for (int i = 0; i < connections.size(); i++) {
+			Person[] connection = connections.get(i);
+			boolean aInComponent = false, bInComponent = false;
+			// If one of the nodes in the connection is in the component, add the other to the component too
+			if (objectInCollection(connection[0], component) && !objectInCollection(connection[1], component)) {
+				aInComponent = true;
+				component.add(connection[1]);
+			}
+			else if (objectInCollection(connection[1], component) && !objectInCollection(connection[0], component)) {
+				bInComponent = true;
+				component.add(connection[0]);
+			}
+			// If both nodes are in the collection, don't revisit the connection
+			else if (objectInCollection(connection[0], component) && objectInCollection(connection[1], component)) {
+				continue;
+			}
+			// If this connection doesn't connect to the component as we currently know it, save it for later
+			else if (!connectionsNotYetInComponents.contains(connection)) {
+				connectionsNotYetInComponents.add(connection);
+			}
+			// If we added to the component
+			if (aInComponent || bInComponent) {
+				// The connection has now been added, so remove it from the list of those that haven't
+				connectionsNotYetInComponents.remove(connection);
+				// Recursively check all the touched connections that aren't in the component yet.
+				// Since we just added a node, they might connect now.
+				processComponentConnections(connectionsNotYetInComponents, component, connectionsNotYetInComponents);
+			}
+		}
+	}
+	
+	private static <T> boolean objectInCollection(T item, Iterable<T> collection) {
+		for (Object member : collection)
+			if (member.equals(item))
+				return true;
+		return false;
 	}
 	
 	public static void startTiming() {
