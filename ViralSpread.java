@@ -17,11 +17,15 @@ import javax.swing.SwingUtilities;
 // TODO: Output data (evolution of each statistic over time) in a file when the simulation is complete
 // TODO: Allow saving graph(s) when the simulation is complete
 // TODO: Show more graphs when the simulation is complete
+// TODO: Show graph title and axis labels
 // TODO: Show a graph of the degree distribution during the simulation
 // TODO: Allow configuring the contagiousness of each virus via the UI
 // TODO: Add an option to do a random walk instead of bounce
-// TODO: Show the diameter of the largest connected component
+// TODO: Add an option to add node "gravity" so that connected nodes or same-colored nodes would be attracted to each other
+// TODO: Expose the restitution constant for nodes
+// TODO: Add an option for nodes with more connections to be more contagious
 // -----------3.0-------------
+// TODO: Show the diameter of the largest connected component
 // TODO: Make nodes with more hard connections optionally more contagious
 // TODO: If paused and you mouse over a node, show its hard connections in a different color
 // TODO: Show the largest hard-connected component in a different color
@@ -107,7 +111,7 @@ public class ViralSpread {
 		final JLabel hardSoftRatio = new JLabel("Hard:soft ratio: 0");
 		final JLabel hardPerNode = new JLabel("Avg. hard connections per node: 0");
 		final JLabel maxPerNode = new JLabel("Max connections: 0");
-		final JLabel edgeProbability = new JLabel("Edge probability: 0");
+		final JLabel edgeProbability = new JLabel("Clustering coefficient: 0");
 		final JLabel maxDistDisplay = new JLabel("Largest connection distance: 0");
 		final JLabel avgDistDisplay = new JLabel("Average connection distance: 0");
 		TimerLabel virusCountTable = new TimerLabel(1000, new TimerListener() {
@@ -115,15 +119,15 @@ public class ViralSpread {
 				parent.setText(Statistics.getVirusCountTable());
 				int numHard = Statistics.getNumHardConnections();
 				int numSoft = Statistics.getNumSoftConnections();
-				double hsRatio = Math.round((numSoft == 0 ? 0 : numHard / (double) numSoft) * 1000) / 1000.0;
-				double perNode = Math.round((numHard / (double) peopleCount) * 1000) / 1000.0;
-				double edgeProb = Math.round(numHard / (double) (peopleCount*peopleCount) * 1000) / 1000.0;
+				double hsRatio = Math.round((numSoft == 0 ? 0 : numHard / (double) numSoft) * 1000.0) / 1000.0;
+				double perNode = Math.round((numHard / (double) peopleCount) * 1000.0) / 1000.0;
+				double edgeProb = Math.round(numHard / (peopleCount*(peopleCount-1)/2.0) * 1000.0) / 1000.0;
 				numHardConnections.setText("Number of hard connections: "+ numHard);
 				numSoftConnections.setText("Number of soft connections: "+ numSoft);
 				hardSoftRatio.setText("Hard:soft ratio: "+ hsRatio);
 				hardPerNode.setText("Avg. hard connections per node: "+ perNode);
 				maxPerNode.setText("Max connections: "+ Statistics.getMaxConnections());
-				edgeProbability.setText("Edge probability: "+ edgeProb);
+				edgeProbability.setText("Clustering coefficient: "+ edgeProb);
 				maxDistDisplay.setText("Largest connection distance: "+ Statistics.getLargestPhysicalDistance());
 				avgDistDisplay.setText("Average connection distance: "+ Statistics.getAveragePhysicalDistance());
 			}
