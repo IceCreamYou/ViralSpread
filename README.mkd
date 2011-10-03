@@ -1,0 +1,4 @@
+![Screenshot](https://github.com/IceCreamYou/ViralSpread/raw/master/ViralSpread.png)
+
+A simulation of a network of competing viruses. You can configure a number of
+parameters to affect how the nodes behave. Should be pretty self-explanatory.
