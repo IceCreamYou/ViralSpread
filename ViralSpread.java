@@ -24,6 +24,7 @@ import javax.swing.SwingUtilities;
 // TODO: Add an option to add node "gravity" so that connected nodes or same-colored nodes would be attracted to each other
 // TODO: Expose the restitution constant for nodes
 // TODO: Add an option for nodes with more connections to be more contagious
+// TODO: Display the average number of viruses each node has had in its lifetime
 // -----------3.0-------------
 // TODO: Show the diameter of the largest connected component
 // TODO: Make nodes with more hard connections optionally more contagious
