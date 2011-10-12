@@ -13,6 +13,10 @@ import java.util.TreeMap;
 
 public class Statistics {
 	
+	public enum GraphType {
+		COUNT
+	}
+	
 	private static ScoreLabel totalCollisions;
 	
 	// time elapsed -> (virus -> count)
@@ -34,6 +38,8 @@ public class Statistics {
 	
 	private static int numViruses = 0;
 	private static int maxCount = 0;
+	
+	private static GraphType graphType = GraphType.COUNT;
 	
 	public static void setup(ScoreLabel c) {
 		totalCollisions = c;
@@ -353,16 +359,31 @@ public class Statistics {
 		return array;
 	}
 	
-	public static void drawGraph(Graphics g) {
-		double scalarX = lastRetrieved / (double) GraphPanel.WIDTH;
-		double scalarY = maxCount / (double) GraphPanel.HEIGHT;
+	public static GraphType getGraphType() {
+		return graphType;
+	}
+	
+	public static void setGraphType(GraphType g) {
+		graphType = g;
+	}
+	
+	public static void drawGraph(Graphics g, GraphPanel graphPanel) {
+		switch (graphType) {
+		case COUNT:
+			drawCountGraph(g, graphPanel); break;
+		}
+	}
+	
+	private static void drawCountGraph(Graphics g, GraphPanel graphPanel) {
+		double scalarX = lastRetrieved / (double) graphPanel.getWidth();
+		double scalarY = maxCount / (double) graphPanel.getHeight();
 		HashMap<Color, int[]> lastPoints = new HashMap<Color, int[]>();
 		for (Map.Entry<Long, HashMap<Virus, Integer>> e : virusCount.entrySet()) {
 			for (Map.Entry<Virus, Integer> ee : e.getValue().entrySet()) {
 				Color c = ee.getKey().getColor();
 				g.setColor(c);
 				int[] lastPos = lastPoints.get(c);
-				int x = (int) (e.getKey() / scalarX), y = (int) (GraphPanel.HEIGHT - (ee.getValue() / scalarY));
+				int x = (int) (e.getKey() / scalarX), y = (int) (graphPanel.getHeight() - (ee.getValue() / scalarY));
 				if (lastPos != null) {
 					g.drawLine(lastPos[0], lastPos[1], x, y);
 				}
@@ -408,6 +429,7 @@ public class Statistics {
 		lastRetrieved = 0;
 		numViruses = 0;
 		maxCount = 0;
+		graphType = GraphType.COUNT;
 	}
 
 	private static class VirusStatsComparator implements Comparator<VirusStats> {

@@ -9,7 +9,7 @@ import javax.swing.JPanel;
 
 class GraphPanel extends JPanel {
 	
-	public static final int WIDTH = 800, HEIGHT = 600;
+	private static final int WIDTH = 768, HEIGHT = 512;
 
 	/**
 	 * Required for subclasses of serial components.
@@ -28,7 +28,7 @@ class GraphPanel extends JPanel {
 	@Override
 	public void paintComponent(Graphics g) {
 		super.paintComponent(g);
-		Statistics.drawGraph(g);
+		Statistics.drawGraph(g, this);
 	}
 	
 }

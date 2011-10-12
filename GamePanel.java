@@ -22,6 +22,8 @@ public class GamePanel extends JPanel {
 
 	private People people;
 	
+	ViralSpread parent;
+	
 	public GamePanel(final ViralSpread parent) {
 		// Set properties.
 		setPreferredSize(new Dimension(WIDTH, HEIGHT));
@@ -39,13 +41,14 @@ public class GamePanel extends JPanel {
 				if (Statistics.isOver()) {
 					stopTimer();
 					parent.disableStartStopButton();
-					parent.showGraphs();
 				}
 				else {
 					tick();
 				}
 			}
 		});
+		
+		this.parent = parent;
 	}
 
 	@Override
@@ -62,6 +65,8 @@ public class GamePanel extends JPanel {
 		if (connectionType == ViralSpread.ShowConnections.HARD ||
 				connectionType == ViralSpread.ShowConnections.HARD_SOFT)
 			Statistics.drawHardConnections(g);
+		// Draw the graphs.
+		parent.repaintGraphs();
 	}
 
 	protected void tick() {

@@ -3,6 +3,7 @@ import java.awt.Dimension;
 import java.awt.FlowLayout;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.awt.event.WindowEvent;
 
 import javax.swing.JButton;
 import javax.swing.JComboBox;
@@ -11,6 +12,7 @@ import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.SwingUtilities;
+import javax.swing.WindowConstants;
 
 
 // -----------2.0-------------
@@ -55,12 +57,14 @@ public class ViralSpread {
 
 	final JFrame frame;
 	final JButton startStopButton;
+	final JButton showGraphButton;
 	final JComboBox peopleSpeed;
 	final JComboBox defaultNodeCount;
 	final JComboBox defaultVirusCount;
 	final JComboBox defaultContagion;
 	final ScoreLabel totalCollisionsLabel;
 	final JComboBox connectionTypeSelect;
+	final JDialog dialog;
 	
 	public enum ShowConnections {
 		HARD,
@@ -79,7 +83,7 @@ public class ViralSpread {
 
 	public ViralSpread() {
     	// Set up the window.
-    	frame = new JFrame("Contagion");
+    	frame = new JFrame("Viral Spread");
 		frame.setLocation(200, 0);
 		frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 
@@ -173,6 +177,19 @@ public class ViralSpread {
 				reset(gamePanel);
 			}
 		});
+		showGraphButton = new JButton("Show graphs");
+		controlPanel.add(showGraphButton);
+		showGraphButton.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+				// Center the dialog.
+				int xpos = frame.getX() + (frame.getWidth() / 2) - (dialog.getWidth() / 2);
+				int ypos = frame.getY() + (frame.getHeight() / 2) - (dialog.getHeight() / 2);
+				dialog.setLocation(xpos, ypos);
+				// Show the dialog.
+				dialog.setVisible(true);
+				showGraphButton.setEnabled(false);
+			}
+		});
 		controlPanel.add(new JLabel("Speed: "));
 		String[] peopleSpeeds = {"Slow", "Medium", "Fast", "Very fast"};
 		peopleSpeed = new JComboBox(peopleSpeeds);
@@ -259,6 +276,43 @@ public class ViralSpread {
 		// Put the frame on the screen
 		frame.pack();
         frame.setVisible(true);
+        
+        // Set up the dialog.
+		dialog = new JDialog(frame);
+		dialog.setMinimumSize(new Dimension(300, 200));
+		dialog.setTitle("Counts Graph");
+		GraphPanel contents = new GraphPanel();
+		//dialog.setContentPane(contents);
+		dialog.add(contents, BorderLayout.CENTER);
+		dialog.setDefaultCloseOperation(WindowConstants.DO_NOTHING_ON_CLOSE);
+		dialog.addWindowListener(new java.awt.event.WindowListener() {
+			public void windowActivated(WindowEvent e) {}
+			public void windowClosed(WindowEvent e) {}
+			public void windowClosing(WindowEvent e) {
+				dialog.setVisible(false);
+				showGraphButton.setEnabled(true);
+			}
+			public void windowDeactivated(WindowEvent e) {}
+			public void windowDeiconified(WindowEvent e) {}
+			public void windowIconified(WindowEvent e) {}
+			public void windowOpened(WindowEvent e) {}
+		});
+		JPanel graphTypeOptionPanel = new JPanel();
+		dialog.add(graphTypeOptionPanel, BorderLayout.PAGE_END);
+		String[] graphTypeOptions = {"Counts"};
+		final JComboBox graphTypeSelect = new JComboBox(graphTypeOptions);
+		graphTypeOptionPanel.add(graphTypeSelect);
+		graphTypeSelect.setSelectedItem("Counts");
+		graphTypeSelect.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+				String result = (String) graphTypeSelect.getSelectedItem();
+				dialog.setTitle(result +" Graph");
+				if (result.equals("Counts"))
+					Statistics.setGraphType(Statistics.GraphType.COUNT);
+				gamePanel.repaint();
+			}
+		});
+		dialog.pack();
 	}
 	
 	// The number of people in the simulation. Avoid numbers above 100.
@@ -315,13 +369,9 @@ public class ViralSpread {
 		maxVelocity = max;
 	}
 	
-	// Show data after the simulation finishes.
-	public void showGraphs() {
-		JDialog dialog = new JDialog(frame);
-		GraphPanel contents = new GraphPanel();
-		dialog.setContentPane(contents);
-		dialog.pack();
-		dialog.setVisible(true);
+	public void repaintGraphs() {
+		if (dialog != null && dialog.isVisible())
+			dialog.repaint();
 	}
 	
 	void disableStartStopButton() {
