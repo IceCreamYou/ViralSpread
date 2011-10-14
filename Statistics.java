@@ -402,7 +402,7 @@ public class Statistics {
 		}
 		if (!p.equals(b))
 			return 0; // No path found
-		int distance = 0;
+		int distance = -1; // We're actually counting the # of nodes in the path, so ignore the first
 		for (p = b; p != null; p = previous.get(p))
 			distance++;
 		return distance;
