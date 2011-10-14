@@ -85,6 +85,10 @@ public class GamePanel extends JPanel {
 		timer.stop();
 	}
 	
+	public boolean isRunning() {
+		return timer.isRunning();
+	}
+	
 	public void reset() {
 		Statistics.reset();
 		stopTimer();

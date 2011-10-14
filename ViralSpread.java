@@ -1,40 +1,45 @@
 import java.awt.BorderLayout;
+import java.awt.Color;
 import java.awt.Dimension;
 import java.awt.FlowLayout;
+import java.awt.Graphics2D;
+import java.awt.Toolkit;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.WindowEvent;
+import java.awt.event.WindowListener;
+import java.awt.image.BufferedImage;
+import java.io.File;
+import java.io.IOException;
 
+import javax.imageio.ImageIO;
 import javax.swing.JButton;
 import javax.swing.JComboBox;
 import javax.swing.JDialog;
+import javax.swing.JFileChooser;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
+import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.SwingUtilities;
 import javax.swing.WindowConstants;
+import javax.swing.filechooser.FileFilter;
 
 
-// -----------2.0-------------
-// TODO: Output data (evolution of each statistic over time) in a file when the simulation is complete
-// TODO: Allow saving graph(s) when the simulation is complete
-// TODO: Show more graphs when the simulation is complete
-// TODO: Show graph title and axis labels
-// TODO: Show a graph of the degree distribution during the simulation
+// -----------2.0------------- DISPLAYING DATA
+// TODO: Output graph data in a file when the simulation is complete
+// TODO: Display the average number of viruses each node has had in its lifetime
+// TODO: Show the diameter of the largest connected component
+// -----------3.0------------- VIRUS BEHAVIOR
 // TODO: Allow configuring the contagiousness of each virus via the UI
 // TODO: Add an option to do a random walk instead of bounce
 // TODO: Add an option to add node "gravity" so that connected nodes or same-colored nodes would be attracted to each other
-// TODO: Expose the restitution constant for nodes
 // TODO: Add an option for nodes with more connections to be more contagious
-// TODO: Display the average number of viruses each node has had in its lifetime
-// -----------3.0-------------
-// TODO: Show the diameter of the largest connected component
-// TODO: Make nodes with more hard connections optionally more contagious
+// TODO: Add an option for nodes to grow in size as their degree increases
+// -----------4.0------------- DISPLAY TWEAKS
 // TODO: If paused and you mouse over a node, show its hard connections in a different color
 // TODO: Show the largest hard-connected component in a different color
-// TODO: Add an option for nodes to grow in size as their degree increases
 // ---------------------------
-// NOTE: Example code to save the generated graph: http://www.exampledepot.com/egs/javax.imageio/Graphic2File.html
 public class ViralSpread {
 	
 	public static boolean debug = false;
@@ -48,12 +53,14 @@ public class ViralSpread {
 	private static final double DEFAULT_CONTAGIOUSNESS = 0.50;
 	private static final ShowConnections DEFAULT_SHOWCONNECTIONS = ShowConnections.HARD;
 	private static final int DEFAULT_VIRUSCOUNT = 8;
+	private static final double DEFAULT_RESTITUTION = 1.0;
 	
 	private static double maxVelocity = FAST_MAX_VELOCITY;
 	private static double contagiousness = DEFAULT_CONTAGIOUSNESS;
 	private static int peopleCount = DEFAULT_PEOPLECOUNT;
 	private static ShowConnections connectionType = DEFAULT_SHOWCONNECTIONS;
 	private static int virusCount = DEFAULT_VIRUSCOUNT;
+	private static double restitution = DEFAULT_RESTITUTION;
 
 	final JFrame frame;
 	final JButton startStopButton;
@@ -63,8 +70,11 @@ public class ViralSpread {
 	final JComboBox defaultVirusCount;
 	final JComboBox defaultContagion;
 	final ScoreLabel totalCollisionsLabel;
+	final ScoreLabel infectiousCollisionsLabel;
 	final JComboBox connectionTypeSelect;
 	final JDialog dialog;
+	final GraphPanel contents;
+	final JComboBox graphTypeSelect;
 	
 	public enum ShowConnections {
 		HARD,
@@ -84,7 +94,6 @@ public class ViralSpread {
 	public ViralSpread() {
     	// Set up the window.
     	frame = new JFrame("Viral Spread");
-		frame.setLocation(200, 0);
 		frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 
 		// Set up the panel in which the game is actually played.
@@ -110,13 +119,19 @@ public class ViralSpread {
 		infoPanel.add(new JLabel("                    "));
 		totalCollisionsLabel = new ScoreLabel("Total collisions: 0", "Total collisions", 0);
 		infoPanel.add(totalCollisionsLabel);
-		Statistics.setup(totalCollisionsLabel);
+		infoPanel.add(new JLabel("                    "));
+		infectiousCollisionsLabel = new ScoreLabel("Infectious collisions: 0", "Infectious collisions", 0);
+		infoPanel.add(infectiousCollisionsLabel);
+		Statistics.setup(totalCollisionsLabel, infectiousCollisionsLabel);
+		infoPanel.add(new JLabel("                    "));
+		final JLabel percentInfectious = new JLabel("% infectious collisions: 0.0");
+		infoPanel.add(percentInfectious);
 		final JLabel numHardConnections = new JLabel("Number of hard connections: 0");
 		final JLabel numSoftConnections = new JLabel("Number of soft connections: 0");
-		final JLabel hardSoftRatio = new JLabel("Hard:soft ratio: 0");
-		final JLabel hardPerNode = new JLabel("Avg. hard connections per node: 0");
+		final JLabel hardSoftRatio = new JLabel("Hard:soft ratio: 0.0");
+		final JLabel hardPerNode = new JLabel("Avg. hard connections per node: 0.0");
 		final JLabel maxPerNode = new JLabel("Max connections: 0");
-		final JLabel edgeProbability = new JLabel("Clustering coefficient: 0");
+		final JLabel edgeProbability = new JLabel("Clustering coefficient: 0.0");
 		final JLabel maxDistDisplay = new JLabel("Largest connection distance: 0");
 		final JLabel avgDistDisplay = new JLabel("Average connection distance: 0");
 		TimerLabel virusCountTable = new TimerLabel(1000, new TimerListener() {
@@ -127,6 +142,7 @@ public class ViralSpread {
 				double hsRatio = Math.round((numSoft == 0 ? 0 : numHard / (double) numSoft) * 1000.0) / 1000.0;
 				double perNode = Math.round((numHard / (double) peopleCount) * 1000.0) / 1000.0;
 				double edgeProb = Math.round(numHard / (peopleCount*(peopleCount-1)/2.0) * 1000.0) / 1000.0;
+				percentInfectious.setText("% infectious collisions: "+ Statistics.getPercentInfectiousCollisions());
 				numHardConnections.setText("Number of hard connections: "+ numHard);
 				numSoftConnections.setText("Number of soft connections: "+ numSoft);
 				hardSoftRatio.setText("Hard:soft ratio: "+ hsRatio);
@@ -137,6 +153,7 @@ public class ViralSpread {
 				avgDistDisplay.setText("Average connection distance: "+ Statistics.getAveragePhysicalDistance());
 			}
 		});
+		virusCountTable.setText(Statistics.getVirusCountTable());
 		infoPanel.add(virusCountTable);
 		infoPanel.add(numHardConnections);
 		infoPanel.add(numSoftConnections);
@@ -275,17 +292,19 @@ public class ViralSpread {
 
 		// Put the frame on the screen
 		frame.pack();
+		Toolkit tk = Toolkit.getDefaultToolkit();
+		Dimension screenSize = tk.getScreenSize();
+		frame.setLocation(screenSize.width / 2 - frame.getWidth() / 2, screenSize.height / 2 - frame.getHeight() / 2);
         frame.setVisible(true);
         
         // Set up the dialog.
 		dialog = new JDialog(frame);
 		dialog.setMinimumSize(new Dimension(300, 200));
-		dialog.setTitle("Counts Graph");
-		GraphPanel contents = new GraphPanel();
-		//dialog.setContentPane(contents);
+		dialog.setTitle("Number of viruses graph");
+		contents = new GraphPanel();
 		dialog.add(contents, BorderLayout.CENTER);
 		dialog.setDefaultCloseOperation(WindowConstants.DO_NOTHING_ON_CLOSE);
-		dialog.addWindowListener(new java.awt.event.WindowListener() {
+		dialog.addWindowListener(new WindowListener() {
 			public void windowActivated(WindowEvent e) {}
 			public void windowClosed(WindowEvent e) {}
 			public void windowClosing(WindowEvent e) {
@@ -299,19 +318,78 @@ public class ViralSpread {
 		});
 		JPanel graphTypeOptionPanel = new JPanel();
 		dialog.add(graphTypeOptionPanel, BorderLayout.PAGE_END);
-		String[] graphTypeOptions = {"Counts"};
-		final JComboBox graphTypeSelect = new JComboBox(graphTypeOptions);
+		String[] graphTypeOptions = {
+				"Number of viruses",
+				"Degree distribution",
+				"Number of components",
+				"Largest component as % of whole",
+				"Number of edges per node",
+				"Hard:soft edge ratio",
+				"Clustering coefficient",
+				"Largest edge length",
+				"Average edge length",
+				"% infectious collisions",
+		};
+		graphTypeSelect = new JComboBox(graphTypeOptions);
 		graphTypeOptionPanel.add(graphTypeSelect);
-		graphTypeSelect.setSelectedItem("Counts");
+		graphTypeSelect.setSelectedItem("Number of viruses");
+		final JFileChooser saveDialog = new JFileChooser();
 		graphTypeSelect.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
 				String result = (String) graphTypeSelect.getSelectedItem();
-				dialog.setTitle(result +" Graph");
-				if (result.equals("Counts"))
+				dialog.setTitle(result +" graph");
+				saveDialog.setSelectedFile(new File(result +" graph.png"));
+				if (result.equals("Number of viruses"))
 					Statistics.setGraphType(Statistics.GraphType.COUNT);
+				if (result.equals("Degree distribution"))
+					Statistics.setGraphType(Statistics.GraphType.DEGREE);
+				if (result.equals("Number of components"))
+					Statistics.setGraphType(Statistics.GraphType.NUM_COMPONENTS);
+				if (result.equals("Largest component as % of whole"))
+					Statistics.setGraphType(Statistics.GraphType.LARGEST_COMPONENT);
+				if (result.equals("Number of edges per node"))
+					Statistics.setGraphType(Statistics.GraphType.CONNECTIONS_PER_NODE);
+				if (result.equals("Hard:soft edge ratio"))
+					Statistics.setGraphType(Statistics.GraphType.HARD_SOFT_RATIO);
+				if (result.equals("Clustering coefficient"))
+					Statistics.setGraphType(Statistics.GraphType.CLUSTERING_COEFF);
+				if (result.equals("Largest edge length"))
+					Statistics.setGraphType(Statistics.GraphType.LARGEST_EDGE_DIST);
+				if (result.equals("Average edge length"))
+					Statistics.setGraphType(Statistics.GraphType.AVG_EDGE_DIST);
+				if (result.equals("% infectious collisions"))
+					Statistics.setGraphType(Statistics.GraphType.INFECTIOUS_COLLISIONS);
 				gamePanel.repaint();
 			}
 		});
+		saveDialog.setSelectedFile(new File("Number of viruses graph.png"));
+		saveDialog.setAcceptAllFileFilterUsed(false);
+		saveDialog.setDialogTitle("Save graph");
+		saveDialog.setFileFilter(new FileFilter() {
+			public boolean accept(File f) {
+				if (f.isDirectory())
+					return f.getName().charAt(0) != '.';
+				String ext = getExtension(f);
+				return ext != null && ext.equals("png");
+			}
+			public String getDescription() {
+				return "PNG";
+			}
+		});
+		JButton saveButton = new JButton("Save graph");
+		saveButton.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+				boolean isRunning = gamePanel.isRunning();
+				if (isRunning)
+					gamePanel.stopTimer();
+				boolean show = true;
+				while (show)
+					show = !saveDialog(saveDialog);
+				if (isRunning)
+					gamePanel.startTimer();
+			}
+		});
+		graphTypeOptionPanel.add(saveButton, BorderLayout.PAGE_END);
 		dialog.pack();
 	}
 	
@@ -348,6 +426,14 @@ public class ViralSpread {
 	public static void setVirusCount(int c) {
 		virusCount = c;
 	}
+	
+	public static double getRestitution() {
+		return restitution;
+	}
+	
+	public static void setRestitution(double r) {
+		restitution = r;
+	}
 
 	// Maximum starting speed of any person in pixels per cycle.
 	public static double getMaxVelocity() {
@@ -374,14 +460,74 @@ public class ViralSpread {
 			dialog.repaint();
 	}
 	
+	public void saveGraph(File file) {
+		BufferedImage image = new BufferedImage(
+				contents.getWidth(),
+				contents.getHeight(),
+				BufferedImage.TYPE_INT_RGB
+		);
+		Graphics2D g = image.createGraphics();
+		g.setColor(Color.WHITE);
+		g.fillRect(0, 0, contents.getWidth(), contents.getHeight());
+		Statistics.drawGraph(g, contents);
+		g.dispose();
+		try {
+			ImageIO.write(image, "png", file);
+		} catch (IOException e) {
+			e.printStackTrace();
+			JOptionPane.showMessageDialog(
+					dialog,
+					"Error: "+ e.getMessage(),
+					"Error saving graph",
+					JOptionPane.ERROR_MESSAGE
+			);
+		}
+	}
+	
 	void disableStartStopButton() {
 		startStopButton.setEnabled(false);
 	}
+
+	// From http://download.oracle.com/javase/tutorial/uiswing/components/filechooser.html
+    private String getExtension(File f) {
+        String ext = null;
+        String s = f.getName();
+        int i = s.lastIndexOf('.');
+        if (i > 0 &&  i < s.length() - 1) {
+            ext = s.substring(i+1).toLowerCase();
+        }
+        return ext;
+    }
+    
+    private boolean saveDialog(JFileChooser saveDialog) {
+    	if (saveDialog == null)
+    		throw new NullPointerException();
+		if (saveDialog.showSaveDialog(dialog) == JFileChooser.APPROVE_OPTION) {
+			File file = saveDialog.getSelectedFile();
+			String ext = getExtension(file);
+			if (ext == null || !ext.equals("png"))
+				file = new File(file.getPath() +".png");
+			if (file.exists()) {
+				int confirm = JOptionPane.showConfirmDialog(
+						saveDialog,
+						file.getName() + " already exists! Would you like to overwrite it?",
+						"File already exists",
+						JOptionPane.YES_NO_OPTION,
+						JOptionPane.WARNING_MESSAGE
+				);
+				if (confirm != JOptionPane.YES_OPTION)
+					return false;
+			}
+			saveGraph(file);
+		}
+		return true;
+    }
 	
 	// Restart the simulation.
 	private void reset(GamePanel gamePanel) {
 		gamePanel.reset();
 		startStopButton.setEnabled(true);
+		//graphTypeSelect.setSelectedItem("Number of viruses");
 	}
 
 }

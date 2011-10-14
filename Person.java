@@ -3,9 +3,7 @@ import java.awt.Graphics;
 
 
 public class Person {
-	
-	private static final double RESTITUTION = 1.0; // The percent velocity people retain after bouncing off each other.
-	
+
 	public static final int RADIUS = 20;
 	
 	private Vector2d position, velocity;
@@ -44,7 +42,7 @@ public class Person {
 		transferVirus(ball);
 	}
 	
-	public void transferVirus(Person ball) {
+	private void transferVirus(Person ball) {
 		Virus thisVirus = getVirus(), ballVirus = ball.getVirus();
 		if (thisVirus.equalsVirus(ballVirus)) {
 			Statistics.updateConnections(this, ball);
@@ -89,7 +87,7 @@ public class Person {
 	    if (vn > 0.0) return;
 
 	    // collision impulse
-	    double i = (-(1.0 + RESTITUTION) * vn) / (im1 + im2);
+	    double i = (-(1.0 + ViralSpread.getRestitution()) * vn) / (im1 + im2);
 	    Vector2d impulse = mtd.multiply(i);
 
 	    // change in momentum

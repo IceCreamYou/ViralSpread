@@ -13,11 +13,7 @@ import java.util.TreeMap;
 
 public class Statistics {
 	
-	public enum GraphType {
-		COUNT
-	}
-	
-	private static ScoreLabel totalCollisions;
+	private static ScoreLabel totalCollisions, totalInfectiousCollisions;
 	
 	// time elapsed -> (virus -> count)
 	private static TreeMap<Long, HashMap<Virus, Integer>> virusCount = new TreeMap<Long, HashMap<Virus, Integer>>();
@@ -30,19 +26,34 @@ public class Statistics {
 	
 	private static HashSet<LinkedList<Person>> components = new HashSet<LinkedList<Person>>();
 	
+	private static TreeMap<Long, Double> numComponents = new TreeMap<Long, Double>();
+	private static TreeMap<Long, Double> maxComponentSizes = new TreeMap<Long, Double>();
+	private static TreeMap<Long, Double> numHardConnections = new TreeMap<Long, Double>();
+	private static TreeMap<Long, Double> hardSoftRatio = new TreeMap<Long, Double>();
+	private static TreeMap<Long, Double> clusteringCoeff = new TreeMap<Long, Double>();
+	private static TreeMap<Long, Double> largestPhysicalDistance = new TreeMap<Long, Double>();
+	private static TreeMap<Long, Double> averagePhysicalDistance = new TreeMap<Long, Double>();
+	private static TreeMap<Long, Double> infectiousCollisions = new TreeMap<Long, Double>();
+	
 	private static StopWatch stopWatch = new StopWatch();
 	
 	private static VirusStatsComparator vsc = new VirusStatsComparator();
 	
-	private static long lastRetrieved = 0;
+	private static long lastRetrievedVirusCount = 0;
 	
-	private static int numViruses = 0;
-	private static int maxCount = 0;
+	private static int numViruses = 0, numPeople = 0;
+	private static int maxCount = 0, maxNumComponents = 0, maxMaxComponentSize = 0;
+
+	private static double maxNumHardConnections = 0.0, maxHardSoftRatio = 0.0, maxClusteringCoeff = 0.0;
+	private static double maxLargestPhysicalDistance = 0.0, maxAveragePhysicalDistance = 0.0;
+	private static double maxInfectiousCollisions = 0.0;
+	private static double edgeProbDenom = 0.0;
 	
 	private static GraphType graphType = GraphType.COUNT;
 	
-	public static void setup(ScoreLabel c) {
+	public static void setup(ScoreLabel c, ScoreLabel d) {
 		totalCollisions = c;
+		totalInfectiousCollisions = d;
 	}
 	
 	public static void setupPeople(Person[] people) {
@@ -55,8 +66,10 @@ public class Statistics {
 			viruses.put(v, i+1);
 		}
 		numViruses = viruses.size();
-		lastRetrieved = stopWatch.getElapsedTime();
-		virusCount.put(lastRetrieved, viruses);
+		numPeople = people.length;
+		edgeProbDenom = numPeople*(numPeople-1)/2.0;
+		lastRetrievedVirusCount = stopWatch.getElapsedTime();
+		virusCount.put(lastRetrievedVirusCount, viruses);
 	}
 	
 	public static boolean isOver() {
@@ -68,9 +81,9 @@ public class Statistics {
 	}
 	
 	public static void transferVirus(Virus lost, Virus gained) {
-		HashMap<Virus, Integer> v = virusCount.get(lastRetrieved);
+		HashMap<Virus, Integer> v = virusCount.get(lastRetrievedVirusCount);
 		HashMap<Virus, Integer> viruses = new HashMap<Virus, Integer>();
-		lastRetrieved = stopWatch.getElapsedTime();
+		lastRetrievedVirusCount = stopWatch.getElapsedTime();
 		for (Map.Entry<Virus, Integer> e : v.entrySet()) {
 			Virus key = e.getKey();
 			int value = e.getValue();
@@ -79,12 +92,13 @@ public class Statistics {
 			if (key.equalsVirus(gained))
 				value++;
 			if (value == 0 && extinction.get(key) == null)
-				extinction.put(key, lastRetrieved);
+				extinction.put(key, lastRetrievedVirusCount);
 			if (value > maxCount)
 				maxCount = value;
 			viruses.put(key, value);
 		}
-		virusCount.put(lastRetrieved, viruses);
+		virusCount.put(lastRetrievedVirusCount, viruses);
+		totalInfectiousCollisions.addValue(1);
 	}
 	
 	public static void updateConnections(Person infected, Person infector) {
@@ -249,7 +263,7 @@ public class Statistics {
 	}
 	
 	public static HashMap<Virus, Integer> getVirusCounts() {
-		return virusCount.get(lastRetrieved);
+		return virusCount.get(lastRetrievedVirusCount);
 	}
 
 	public static int getLargestPhysicalDistance() {
@@ -262,6 +276,9 @@ public class Statistics {
 			if (dist > maxDist)
 				maxDist = dist;
 		}
+		if (maxDist > maxLargestPhysicalDistance)
+			maxLargestPhysicalDistance = maxDist;
+		largestPhysicalDistance.put(stopWatch.getElapsedTime(), maxDist);
 		return (int) maxDist;
 	}
 	public static int getAveragePhysicalDistance() {
@@ -273,11 +290,30 @@ public class Statistics {
 			);
 			totalDist += dist;
 		}
-		return (int) (totalDist / hardConnections.size());
+		double num = totalDist / hardConnections.size();
+		if (num > maxAveragePhysicalDistance)
+			maxAveragePhysicalDistance = num;
+		averagePhysicalDistance.put(stopWatch.getElapsedTime(), num);
+		return (int) num;
 	}
 
 	public static int getNumHardConnections() {
-		return hardConnections.size();
+		long time = stopWatch.getElapsedTime();
+		int num = hardConnections.size();
+		if (num / (double) numPeople > maxNumHardConnections)
+			maxNumHardConnections = num / (double) numPeople;
+		numHardConnections.put(time, num / (double) numPeople);
+		double soft = softConnections.size();
+		if (soft > 0.0) {
+			if (num / soft > maxHardSoftRatio)
+				maxHardSoftRatio = num / soft;
+			hardSoftRatio.put(time, num / soft);
+		}
+		double edgeProb = num / edgeProbDenom;
+		if (edgeProb > maxClusteringCoeff)
+			maxClusteringCoeff = edgeProb;
+		clusteringCoeff.put(time, edgeProb);
+		return num;
 	}
 	
 	public static int getNumSoftConnections() {
@@ -293,8 +329,20 @@ public class Statistics {
 		return max;
 	}
 	
+	public static double getPercentInfectiousCollisions() {
+		double fraction = totalInfectiousCollisions.getValue() / (double) totalCollisions.getValue();
+		if (fraction > maxInfectiousCollisions)
+			maxInfectiousCollisions = fraction;
+		infectiousCollisions.put(stopWatch.getElapsedTime(), fraction);
+		return Math.round(fraction * 1000.0) / 1000.0;
+	}
+	
 	public static int getNumComponents() {
-		return components.size();
+		int num = components.size();
+		if (num > maxNumComponents)
+			maxNumComponents = num;
+		numComponents.put(stopWatch.getElapsedTime(), (double) num);
+		return num;
 	}
 	
 	public static int getLargestConnectedComponent() {
@@ -302,6 +350,9 @@ public class Statistics {
 		for (LinkedList<Person> component : components)
 			if (component.size() > max)
 				max = component.size();
+		if (max > maxMaxComponentSize)
+			maxMaxComponentSize = max;
+		maxComponentSizes.put(stopWatch.getElapsedTime(), max / (double) numPeople);
 		return max;
 	}
 	
@@ -358,6 +409,19 @@ public class Statistics {
 		Arrays.sort(array, vsc);
 		return array;
 	}
+
+	public enum GraphType {
+		COUNT,
+		DEGREE,
+		NUM_COMPONENTS,
+		LARGEST_COMPONENT,
+		CONNECTIONS_PER_NODE,
+		HARD_SOFT_RATIO,
+		CLUSTERING_COEFF,
+		LARGEST_EDGE_DIST,
+		AVG_EDGE_DIST,
+		INFECTIOUS_COLLISIONS
+	}
 	
 	public static GraphType getGraphType() {
 		return graphType;
@@ -371,11 +435,29 @@ public class Statistics {
 		switch (graphType) {
 		case COUNT:
 			drawCountGraph(g, graphPanel); break;
+		case DEGREE:
+			drawDegreeGraph(g, graphPanel); break;
+		case NUM_COMPONENTS:
+			drawNumComponentsGraph(g, graphPanel); break;
+		case LARGEST_COMPONENT:
+			drawLargestComponentGraph(g, graphPanel); break;
+		case CONNECTIONS_PER_NODE:
+			drawConnectionsPerNodeGraph(g, graphPanel); break;
+		case HARD_SOFT_RATIO:
+			drawHardSoftRatioGraph(g, graphPanel); break;
+		case CLUSTERING_COEFF:
+			drawClusteringCoeffGraph(g, graphPanel); break;
+		case LARGEST_EDGE_DIST:
+			drawLargestEdgeLengthGraph(g, graphPanel); break;
+		case AVG_EDGE_DIST:
+			drawAverageEdgeLengthGraph(g, graphPanel); break;
+		case INFECTIOUS_COLLISIONS:
+			drawCollisionsGraph(g, graphPanel); break;
 		}
 	}
-	
+
 	private static void drawCountGraph(Graphics g, GraphPanel graphPanel) {
-		double scalarX = lastRetrieved / (double) graphPanel.getWidth();
+		double scalarX = lastRetrievedVirusCount / (double) graphPanel.getWidth();
 		double scalarY = maxCount / (double) graphPanel.getHeight();
 		HashMap<Color, int[]> lastPoints = new HashMap<Color, int[]>();
 		for (Map.Entry<Long, HashMap<Virus, Integer>> e : virusCount.entrySet()) {
@@ -389,6 +471,99 @@ public class Statistics {
 				}
 				lastPoints.put(c, new int[] {x, y});
 			}
+		}
+	}
+
+	private static void drawDegreeGraph(Graphics g, GraphPanel graphPanel) {
+		// Calculate connections per node
+		HashMap<Person, Integer> connectionsPerNode = new HashMap<Person, Integer>();
+		for (Person[] connection : hardConnections) {
+			for (Person p : connection) {
+				int count = 1;
+				if (connectionsPerNode.containsKey(p))
+					count = connectionsPerNode.get(p)+1;
+				connectionsPerNode.put(p, count);
+			}
+		}
+		// Map degree to # nodes with that degree
+		int maxCount = 0, maxDegree = 0;
+		TreeMap<Integer, Integer> connectionCounts = new TreeMap<Integer, Integer>();
+		for (Map.Entry<Person, Integer> e : connectionsPerNode.entrySet()) {
+			int count = 1;
+			if (connectionCounts.containsKey(e.getValue()))
+				count = connectionCounts.get(e.getValue())+1;
+			if (count > maxCount)
+				maxCount = count;
+			if (e.getValue() > maxDegree)
+				maxDegree = e.getValue();
+			connectionCounts.put(e.getValue(), count);
+		}
+		// Graph
+		g.setColor(Color.BLACK);
+		double interval = graphPanel.getWidth() / (maxDegree+1.0);
+		double scalarY = graphPanel.getHeight() / (maxCount+1.0);
+		for (int i = 0; i <= maxDegree; i++) {
+			int x = (int) (interval * i + interval * 0.125);
+			if (connectionCounts.containsKey(i)) {
+				int y = (int) (connectionCounts.get(i) * scalarY);
+				g.fillRect(x, graphPanel.getHeight() - y, (int) (interval * 0.75), y);
+			}
+		}
+	}
+
+	private static void drawNumComponentsGraph(Graphics g, GraphPanel graphPanel) {
+		drawSingleLineGraph(g, graphPanel, numComponents, maxNumComponents);
+	}
+
+	private static void drawLargestComponentGraph(Graphics g,
+			GraphPanel graphPanel) {
+		drawSingleLineGraph(g, graphPanel, maxComponentSizes, maxMaxComponentSize / (double) numPeople);
+	}
+
+	private static void drawConnectionsPerNodeGraph(Graphics g,
+			GraphPanel graphPanel) {
+		drawSingleLineGraph(g, graphPanel, numHardConnections, maxNumHardConnections);
+	}
+
+	private static void drawHardSoftRatioGraph(Graphics g, GraphPanel graphPanel) {
+		drawSingleLineGraph(g, graphPanel, hardSoftRatio, maxHardSoftRatio);
+	}
+
+	private static void drawClusteringCoeffGraph(Graphics g,
+			GraphPanel graphPanel) {
+		drawSingleLineGraph(g, graphPanel, clusteringCoeff, maxClusteringCoeff);
+	}
+
+	private static void drawLargestEdgeLengthGraph(Graphics g,
+			GraphPanel graphPanel) {
+		drawSingleLineGraph(g, graphPanel, largestPhysicalDistance, maxLargestPhysicalDistance);
+	}
+
+	private static void drawAverageEdgeLengthGraph(Graphics g,
+			GraphPanel graphPanel) {
+		drawSingleLineGraph(g, graphPanel, averagePhysicalDistance, maxAveragePhysicalDistance);
+	}
+	
+	private static void drawCollisionsGraph(Graphics g, GraphPanel graphPanel) {
+		drawSingleLineGraph(g, graphPanel, infectiousCollisions, maxInfectiousCollisions);
+	}
+
+	private static void drawSingleLineGraph(
+			Graphics g,
+			GraphPanel graphPanel,
+			TreeMap<Long, Double> map,
+			double max
+	) {
+		if (map.size() == 0)
+			return;
+		double scalarX = map.lastKey() / (double) graphPanel.getWidth();
+		double scalarY = max / (double) graphPanel.getHeight();
+		int[] lastPoint = new int[] {0, 0};
+		g.setColor(Color.BLACK);
+		for (Map.Entry<Long, Double> e : map.entrySet()) {
+			int x = (int) (e.getKey() / scalarX), y = (int) (graphPanel.getHeight() - (e.getValue() / scalarY));
+			g.drawLine(lastPoint[0], lastPoint[1], x, y);
+			lastPoint = new int[] {x, y};
 		}
 	}
 	
@@ -418,18 +593,35 @@ public class Statistics {
 
 	public static void reset() {
 		totalCollisions.resetValue();
+		totalInfectiousCollisions.resetValue();
 		virusCount = new TreeMap<Long, HashMap<Virus, Integer>>();
 		extinction = new HashMap<Virus, Long>();
 		hardConnections = new HashSet<Person[]>();
 		softConnections = new HashSet<Person[]>();
 		connectionCounts = new HashMap<Person, Integer>();
 		components = new HashSet<LinkedList<Person>>();
+		numComponents = new TreeMap<Long, Double>();
+		maxComponentSizes = new TreeMap<Long, Double>();
+		numHardConnections = new TreeMap<Long, Double>();
+		hardSoftRatio = new TreeMap<Long, Double>();
+		clusteringCoeff = new TreeMap<Long, Double>();
+		largestPhysicalDistance = new TreeMap<Long, Double>();
+		averagePhysicalDistance = new TreeMap<Long, Double>();
+		infectiousCollisions = new TreeMap<Long, Double>();
 		stopWatch = new StopWatch();
 		vsc = new VirusStatsComparator();
-		lastRetrieved = 0;
+		lastRetrievedVirusCount = 0;
 		numViruses = 0;
+		numPeople = 0;
 		maxCount = 0;
-		graphType = GraphType.COUNT;
+		maxNumComponents = 0;
+		maxMaxComponentSize = 0;
+		maxNumHardConnections = 0.0;
+		maxHardSoftRatio = 0.0;
+		maxClusteringCoeff = 0.0;
+		maxInfectiousCollisions = 0.0;
+		edgeProbDenom = 0.0;
+		//graphType = GraphType.COUNT;
 	}
 
 	private static class VirusStatsComparator implements Comparator<VirusStats> {

@@ -44,6 +44,10 @@ public class People {
 		for (Person p : people)
 			p.move();
 	}
+	
+	public int getCount() {
+		return people.length;
+	}
 
 	private static int getRandomInRange(int low, int high) {
 		return (int) ((Math.random() * (high - low + 1)) + low);
