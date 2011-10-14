@@ -28,8 +28,6 @@ import javax.swing.filechooser.FileFilter;
 
 // -----------2.0------------- DISPLAYING DATA
 // TODO: Output graph data in a file when the simulation is complete
-// TODO: Display the average number of viruses each node has had in its lifetime
-// TODO: Show the diameter of the largest connected component
 // -----------3.0------------- VIRUS BEHAVIOR
 // TODO: Allow configuring the contagiousness of each virus via the UI
 // TODO: Add an option to do a random walk instead of bounce
@@ -106,13 +104,17 @@ public class ViralSpread {
 		infoPanel.setMinimumSize(d);
 		infoPanel.setPreferredSize(d);
 		frame.add(infoPanel, BorderLayout.LINE_END);
-		final JLabel numComponents = new JLabel("Number of components: 0");
 		final JLabel largestComponent = new JLabel("Largest component: 0");
+		TimerLabel numComponents = new TimerLabel(925, new TimerListener() {
+			public void execute(TimerLabel parent) {
+				parent.setText("Number of components: "+ Statistics.getNumComponents());
+				largestComponent.setText("Largest component: "+ Statistics.getLargestConnectedComponent());
+			}
+		});
+		numComponents.setText("Number of components: 0");
 		TimerLabel timeElapsed = new TimerLabel(200, new TimerListener() {
 			public void execute(TimerLabel parent) {
 				parent.setText(Statistics.getElapsedTime());
-				numComponents.setText("Number of components: "+ Statistics.getNumComponents());
-				largestComponent.setText("Largest component: "+ Statistics.getLargestConnectedComponent());
 			}
 		});
 		infoPanel.add(timeElapsed);
@@ -165,6 +167,17 @@ public class ViralSpread {
 		infoPanel.add(avgDistDisplay);
 		infoPanel.add(numComponents);
 		infoPanel.add(largestComponent);
+		final JLabel diameterLabel = new TimerLabel(1150, new TimerListener() {
+			public void execute(TimerLabel parent) {
+				int diameter = Statistics.getDiameter();
+				if (diameter < 0)
+					parent.setText("Diameter of LCC: too slow (est: "+ (-diameter) +")");
+				else
+					parent.setText("Diameter of LCC: "+ diameter);
+			}
+		});
+		diameterLabel.setText("Diameter of LCC: 0");
+		infoPanel.add(diameterLabel);
 		
 		
 		// Set up the control panel.

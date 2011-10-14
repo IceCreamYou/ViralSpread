@@ -356,6 +356,69 @@ public class Statistics {
 		return max;
 	}
 	
+	public static int getDiameter() {
+		// Find the largest connected component.
+		LinkedList<Person> nodes = new LinkedList<Person>();
+		for (LinkedList<Person> component : components)
+			if (component.size() > nodes.size())
+				nodes = component;
+		// Calculate its diameter (find the longest shortest path).
+		long start = System.nanoTime();
+	    int diameter = 0;
+	    for (int i = 0; i < nodes.size(); i++) {
+	        for (int j = i+1; j < nodes.size(); j++) {
+	            int distance = distance(nodes.get(i), nodes.get(j));
+	            if (distance > diameter)
+	                diameter = distance;
+	            // Abort if we're taking too long.
+	            if (System.nanoTime() - start > 60000000)
+	            	return -diameter;
+	        }
+	    }
+	    return diameter;
+	}
+	// Get the shortest path between two nodes.
+	private static int distance(Person a, Person b) {
+		HashSet<Person> visited = new HashSet<Person>();
+		HashMap<Person, Person> previous = new HashMap<Person, Person>();
+		LinkedList<Person> queue = new LinkedList<Person>();
+		queue.add(a);
+		visited.add(a);
+		Person p = a;
+		while (!queue.isEmpty()) {
+			p = queue.remove();
+			if (p.equals(b)) {
+				break;
+			}
+			else {
+				for (Person q : getNeighbors(p)) {
+					if (!visited.contains(q)) {
+						queue.add(q);
+						visited.add(q);
+						previous.put(q, p);
+					}
+				}
+			}
+		}
+		if (!p.equals(b))
+			return 0; // No path found
+		int distance = 0;
+		for (p = b; p != null; p = previous.get(p))
+			distance++;
+		return distance;
+	}
+	// Get all nodes connected to p.
+	private static HashSet<Person> getNeighbors(Person p) {
+		HashSet<Person> neighbors = new HashSet<Person>();
+		for (Person[] edge : hardConnections) {
+			if (edge[0].equals(p))
+				neighbors.add(edge[1]);
+			else if (edge[1].equals(p))
+				neighbors.add(edge[0]);
+		}
+		return neighbors;
+	}
+	
 	public static String getExtinctTime(Virus v) {
 		Long extinctTime = extinction.get(v);
 		if (extinctTime != null) {
