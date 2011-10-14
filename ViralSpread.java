@@ -27,6 +27,7 @@ import javax.swing.filechooser.FileFilter;
 
 
 // -----------2.5------------- DISPLAYING DATA
+// TODO: Show graph axis labels
 // TODO: Add a button to output graph data in a file when the simulation is complete
 // -----------3.0------------- VIRUS BEHAVIOR
 // TODO: Allow configuring the contagiousness of each virus via the UI
