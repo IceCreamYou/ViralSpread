@@ -26,8 +26,8 @@ import javax.swing.WindowConstants;
 import javax.swing.filechooser.FileFilter;
 
 
-// -----------2.0------------- DISPLAYING DATA
-// TODO: Output graph data in a file when the simulation is complete
+// -----------2.5------------- DISPLAYING DATA
+// TODO: Add a button to output graph data in a file when the simulation is complete
 // -----------3.0------------- VIRUS BEHAVIOR
 // TODO: Allow configuring the contagiousness of each virus via the UI
 // TODO: Add an option to do a random walk instead of bounce
