@@ -2,3 +2,5 @@
 
 A simulation of a network of competing viruses. You can configure a number of
 parameters to affect how the nodes behave. Should be pretty self-explanatory.
+
+Recommended screen size is at least 1280x1024.

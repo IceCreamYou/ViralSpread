@@ -3,13 +3,16 @@ import java.awt.Color;
 import java.awt.Dimension;
 import java.awt.FlowLayout;
 import java.awt.Graphics2D;
+import java.awt.GridLayout;
 import java.awt.Toolkit;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.WindowEvent;
 import java.awt.event.WindowListener;
 import java.awt.image.BufferedImage;
+import java.io.BufferedWriter;
 import java.io.File;
+import java.io.FileWriter;
 import java.io.IOException;
 
 import javax.imageio.ImageIO;
@@ -23,11 +26,8 @@ import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.SwingUtilities;
 import javax.swing.WindowConstants;
-import javax.swing.filechooser.FileFilter;
 
 
-// -----------2.5------------- DISPLAYING DATA
-// TODO: Add a button to output graph data in a file when the simulation is complete
 // -----------3.0------------- VIRUS BEHAVIOR
 // TODO: Allow configuring the contagiousness of each virus via the UI
 // TODO: Add an option to do a random walk instead of bounce
@@ -179,10 +179,97 @@ public class ViralSpread {
 		diameterLabel.setText("Diameter of LCC: 0");
 		infoPanel.add(diameterLabel);
 		
+		JPanel bottomArea = new JPanel(new GridLayout(2, 1));
+		frame.add(bottomArea, BorderLayout.PAGE_END);
+		// Set up the configuration panel.
+		JPanel configPanel = new JPanel();
+		bottomArea.add(configPanel);
+		configPanel.add(new JLabel("Speed: "));
+		String[] peopleSpeeds = {"Slow", "Medium", "Fast", "Very fast"};
+		peopleSpeed = new JComboBox(peopleSpeeds);
+		configPanel.add(peopleSpeed);
+		peopleSpeed.setSelectedItem("Fast");
+		peopleSpeed.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+				String result = (String) peopleSpeed.getSelectedItem();
+				if (result.equals("Slow"))
+					maxVelocity = SLOW_MAX_VELOCITY;
+				else if (result.equals("Medium"))
+					maxVelocity = MEDIUM_MAX_VELOCITY;
+				else if (result.equals("Fast"))
+					maxVelocity = FAST_MAX_VELOCITY;
+				else if (result.equals("Very fast"))
+					maxVelocity = VERY_FAST_MAX_VELOCITY;
+				if (startStopButton.getText().equals("Start"))
+					reset(gamePanel);
+			}
+		});
+		configPanel.add(new JLabel("Show connections: "));
+		String[] connectionTypes = {"Hard", "Soft", "Both", "None"};
+		connectionTypeSelect = new JComboBox(connectionTypes);
+		configPanel.add(connectionTypeSelect);
+		connectionTypeSelect.setSelectedItem("Hard");
+		connectionTypeSelect.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+				String result = (String) connectionTypeSelect.getSelectedItem();
+				if (result.equals("Hard"))
+					connectionType = ShowConnections.HARD;
+				else if (result.equals("Soft"))
+					connectionType = ShowConnections.SOFT;
+				else if (result.equals("Both"))
+					connectionType = ShowConnections.HARD_SOFT;
+				else if (result.equals("None"))
+					connectionType = ShowConnections.NONE;
+				gamePanel.repaint();
+			}
+		});
+		configPanel.add(new JLabel("Nodes: "));
+		Integer[] nodeOptions = new Integer[99];
+		for (int i = 2; i <= 100; i++)
+			nodeOptions[i-2] = i;
+		defaultNodeCount = new JComboBox(nodeOptions);
+		configPanel.add(defaultNodeCount);
+		defaultNodeCount.setSelectedItem(DEFAULT_PEOPLECOUNT);
+		defaultNodeCount.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent arg0) {
+				peopleCount = (Integer) defaultNodeCount.getSelectedItem();
+				if (startStopButton.getText().equals("Start"))
+					reset(gamePanel);
+			}
+		});
+		configPanel.add(new JLabel("Viruses: "));
+		Integer[] virusOptions = new Integer[8];
+		for (int i = 2; i <= 9; i++)
+			virusOptions[i-2] = i;
+		defaultVirusCount = new JComboBox(virusOptions);
+		configPanel.add(defaultVirusCount);
+		defaultVirusCount.setSelectedItem(DEFAULT_VIRUSCOUNT);
+		defaultVirusCount.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent arg0) {
+				virusCount = (Integer) defaultVirusCount.getSelectedItem();
+				if (startStopButton.getText().equals("Start"))
+					reset(gamePanel);
+			}
+		});
+		configPanel.add(new JLabel("Contagiousness: "));
+		Double[] contagionOptions = new Double[100];
+		for (int i = 1; i <= 100; i++) {
+			contagionOptions[i-1] = i/100.0;
+		}
+		defaultContagion = new JComboBox(contagionOptions);
+		configPanel.add(defaultContagion);
+		defaultContagion.setSelectedIndex((int)(DEFAULT_CONTAGIOUSNESS * 100) - 1);
+		defaultContagion.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent arg0) {
+				contagiousness = (Double) defaultContagion.getSelectedItem();
+				if (startStopButton.getText().equals("Start"))
+					reset(gamePanel);
+			}
+		});
 		
-		// Set up the control panel.
+		// Set up the control panel
 		JPanel controlPanel = new JPanel();
-		frame.add(controlPanel, BorderLayout.PAGE_END);
+		bottomArea.add(controlPanel);
 		startStopButton = new JButton("Start");
 		controlPanel.add(startStopButton);
 		startStopButton.addActionListener(new ActionListener() {
@@ -220,88 +307,6 @@ public class ViralSpread {
 				showGraphButton.setEnabled(false);
 			}
 		});
-		controlPanel.add(new JLabel("Speed: "));
-		String[] peopleSpeeds = {"Slow", "Medium", "Fast", "Very fast"};
-		peopleSpeed = new JComboBox(peopleSpeeds);
-		controlPanel.add(peopleSpeed);
-		peopleSpeed.setSelectedItem("Fast");
-		peopleSpeed.addActionListener(new ActionListener() {
-			public void actionPerformed(ActionEvent e) {
-				String result = (String) peopleSpeed.getSelectedItem();
-				if (result.equals("Slow"))
-					maxVelocity = SLOW_MAX_VELOCITY;
-				else if (result.equals("Medium"))
-					maxVelocity = MEDIUM_MAX_VELOCITY;
-				else if (result.equals("Fast"))
-					maxVelocity = FAST_MAX_VELOCITY;
-				else if (result.equals("Very fast"))
-					maxVelocity = VERY_FAST_MAX_VELOCITY;
-				if (startStopButton.getText().equals("Start"))
-					reset(gamePanel);
-			}
-		});
-		controlPanel.add(new JLabel("Show connections: "));
-		String[] connectionTypes = {"Hard", "Soft", "Both", "None"};
-		connectionTypeSelect = new JComboBox(connectionTypes);
-		controlPanel.add(connectionTypeSelect);
-		connectionTypeSelect.setSelectedItem("Hard");
-		connectionTypeSelect.addActionListener(new ActionListener() {
-			public void actionPerformed(ActionEvent e) {
-				String result = (String) connectionTypeSelect.getSelectedItem();
-				if (result.equals("Hard"))
-					connectionType = ShowConnections.HARD;
-				else if (result.equals("Soft"))
-					connectionType = ShowConnections.SOFT;
-				else if (result.equals("Both"))
-					connectionType = ShowConnections.HARD_SOFT;
-				else if (result.equals("None"))
-					connectionType = ShowConnections.NONE;
-				gamePanel.repaint();
-			}
-		});
-		controlPanel.add(new JLabel("Nodes: "));
-		Integer[] nodeOptions = new Integer[99];
-		for (int i = 2; i <= 100; i++)
-			nodeOptions[i-2] = i;
-		defaultNodeCount = new JComboBox(nodeOptions);
-		controlPanel.add(defaultNodeCount);
-		defaultNodeCount.setSelectedItem(DEFAULT_PEOPLECOUNT);
-		defaultNodeCount.addActionListener(new ActionListener() {
-			public void actionPerformed(ActionEvent arg0) {
-				peopleCount = (Integer) defaultNodeCount.getSelectedItem();
-				if (startStopButton.getText().equals("Start"))
-					reset(gamePanel);
-			}
-		});
-		controlPanel.add(new JLabel("Viruses: "));
-		Integer[] virusOptions = new Integer[8];
-		for (int i = 2; i <= 9; i++)
-			virusOptions[i-2] = i;
-		defaultVirusCount = new JComboBox(virusOptions);
-		controlPanel.add(defaultVirusCount);
-		defaultVirusCount.setSelectedItem(DEFAULT_VIRUSCOUNT);
-		defaultVirusCount.addActionListener(new ActionListener() {
-			public void actionPerformed(ActionEvent arg0) {
-				virusCount = (Integer) defaultVirusCount.getSelectedItem();
-				if (startStopButton.getText().equals("Start"))
-					reset(gamePanel);
-			}
-		});
-		controlPanel.add(new JLabel("Contagiousness: "));
-		Double[] contagionOptions = new Double[100];
-		for (int i = 1; i <= 100; i++) {
-			contagionOptions[i-1] = i/100.0;
-		}
-		defaultContagion = new JComboBox(contagionOptions);
-		controlPanel.add(defaultContagion);
-		defaultContagion.setSelectedIndex((int)(DEFAULT_CONTAGIOUSNESS * 100) - 1);
-		defaultContagion.addActionListener(new ActionListener() {
-			public void actionPerformed(ActionEvent arg0) {
-				contagiousness = (Double) defaultContagion.getSelectedItem();
-				if (startStopButton.getText().equals("Start"))
-					reset(gamePanel);
-			}
-		});
 
 		// Put the frame on the screen
 		frame.pack();
@@ -335,7 +340,7 @@ public class ViralSpread {
 				"Number of viruses",
 				"Degree distribution",
 				"Number of components",
-				"Largest component as % of whole",
+				"Largest component - percent of whole",
 				"Number of edges per node",
 				"Hard:soft edge ratio",
 				"Clustering coefficient",
@@ -346,19 +351,21 @@ public class ViralSpread {
 		graphTypeSelect = new JComboBox(graphTypeOptions);
 		graphTypeOptionPanel.add(graphTypeSelect);
 		graphTypeSelect.setSelectedItem("Number of viruses");
-		final JFileChooser saveDialog = new JFileChooser();
+		final ValidatedFileChooser saveDialog = new ValidatedFileChooser();
+		final ValidatedFileChooser exportDialog = new ValidatedFileChooser();
 		graphTypeSelect.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
 				String result = (String) graphTypeSelect.getSelectedItem();
 				dialog.setTitle(result +" graph");
 				saveDialog.setSelectedFile(new File(result +" graph.png"));
+				exportDialog.setSelectedFile(new File(result +" data.csv"));
 				if (result.equals("Number of viruses"))
 					Statistics.setGraphType(Statistics.GraphType.COUNT);
 				if (result.equals("Degree distribution"))
 					Statistics.setGraphType(Statistics.GraphType.DEGREE);
 				if (result.equals("Number of components"))
 					Statistics.setGraphType(Statistics.GraphType.NUM_COMPONENTS);
-				if (result.equals("Largest component as % of whole"))
+				if (result.equals("Largest component - percent of whole"))
 					Statistics.setGraphType(Statistics.GraphType.LARGEST_COMPONENT);
 				if (result.equals("Number of edges per node"))
 					Statistics.setGraphType(Statistics.GraphType.CONNECTIONS_PER_NODE);
@@ -375,34 +382,40 @@ public class ViralSpread {
 				gamePanel.repaint();
 			}
 		});
+		saveDialog.setRequiredExtension("png");
 		saveDialog.setSelectedFile(new File("Number of viruses graph.png"));
 		saveDialog.setAcceptAllFileFilterUsed(false);
 		saveDialog.setDialogTitle("Save graph");
-		saveDialog.setFileFilter(new FileFilter() {
-			public boolean accept(File f) {
-				if (f.isDirectory())
-					return f.getName().charAt(0) != '.';
-				String ext = getExtension(f);
-				return ext != null && ext.equals("png");
-			}
-			public String getDescription() {
-				return "PNG";
-			}
-		});
 		JButton saveButton = new JButton("Save graph");
 		saveButton.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
 				boolean isRunning = gamePanel.isRunning();
 				if (isRunning)
 					gamePanel.stopTimer();
-				boolean show = true;
-				while (show)
-					show = !saveDialog(saveDialog);
+				if (saveDialog.showSaveDialog(saveDialog) == JFileChooser.APPROVE_OPTION)
+					saveGraph(saveDialog.getSelectedFile());
 				if (isRunning)
 					gamePanel.startTimer();
 			}
 		});
 		graphTypeOptionPanel.add(saveButton, BorderLayout.PAGE_END);
+		exportDialog.setRequiredExtension("csv");
+		exportDialog.setSelectedFile(new File("Number of viruses data.csv"));
+		exportDialog.setAcceptAllFileFilterUsed(false);
+		exportDialog.setDialogTitle("Save data");
+		JButton exportButton = new JButton("Export data");
+		exportButton.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+				boolean isRunning = gamePanel.isRunning();
+				if (isRunning)
+					gamePanel.stopTimer();
+				if (exportDialog.showSaveDialog(exportDialog) == JFileChooser.APPROVE_OPTION)
+					saveData(exportDialog.getSelectedFile());
+				if (isRunning)
+					gamePanel.startTimer();
+			}
+		});
+		graphTypeOptionPanel.add(exportButton, BorderLayout.PAGE_END);
 		dialog.pack();
 	}
 	
@@ -485,56 +498,56 @@ public class ViralSpread {
 		Statistics.drawGraph(g, contents);
 		g.dispose();
 		try {
-			ImageIO.write(image, "png", file);
+			if (file != null)
+				ImageIO.write(image, "png", file);
+			else
+				throw new IOException();
 		} catch (IOException e) {
-			e.printStackTrace();
-			JOptionPane.showMessageDialog(
-					dialog,
-					"Error: "+ e.getMessage(),
-					"Error saving graph",
-					JOptionPane.ERROR_MESSAGE
-			);
+			complain(e);
+		} catch (NullPointerException e) {
+			complain(e);
 		}
+	}
+	
+	public void saveData(File file) {
+		try {
+			BufferedWriter out = new BufferedWriter(new FileWriter(file));
+			String data = Statistics.exportData();
+			if (data != null)
+				out.write(data);
+			else
+				JOptionPane.showMessageDialog(
+						dialog,
+						"Error: no data to write!",
+						"Error saving",
+						JOptionPane.ERROR_MESSAGE
+				);
+			out.close();
+		} catch (IOException e) {
+			complain(e);
+		} catch (NullPointerException e) {
+			complain(e);
+		}
+	}
+	
+	private void complain(Exception e) {
+		if (e != null)
+			e.printStackTrace();
+		String message =
+			(e != null && e.getMessage() != null && !e.getMessage().equals("null"))
+			? e.getMessage()
+			: "unable to save; you probably entered an invalid file name.";
+		JOptionPane.showMessageDialog(
+				dialog,
+				"Error: "+ message,
+				"Error saving",
+				JOptionPane.ERROR_MESSAGE
+		);
 	}
 	
 	void disableStartStopButton() {
 		startStopButton.setEnabled(false);
 	}
-
-	// From http://download.oracle.com/javase/tutorial/uiswing/components/filechooser.html
-    private String getExtension(File f) {
-        String ext = null;
-        String s = f.getName();
-        int i = s.lastIndexOf('.');
-        if (i > 0 &&  i < s.length() - 1) {
-            ext = s.substring(i+1).toLowerCase();
-        }
-        return ext;
-    }
-    
-    private boolean saveDialog(JFileChooser saveDialog) {
-    	if (saveDialog == null)
-    		throw new NullPointerException();
-		if (saveDialog.showSaveDialog(dialog) == JFileChooser.APPROVE_OPTION) {
-			File file = saveDialog.getSelectedFile();
-			String ext = getExtension(file);
-			if (ext == null || !ext.equals("png"))
-				file = new File(file.getPath() +".png");
-			if (file.exists()) {
-				int confirm = JOptionPane.showConfirmDialog(
-						saveDialog,
-						file.getName() + " already exists! Would you like to overwrite it?",
-						"File already exists",
-						JOptionPane.YES_NO_OPTION,
-						JOptionPane.WARNING_MESSAGE
-				);
-				if (confirm != JOptionPane.YES_OPTION)
-					return false;
-			}
-			saveGraph(file);
-		}
-		return true;
-    }
 	
 	// Restart the simulation.
 	private void reset(GamePanel gamePanel) {

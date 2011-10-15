@@ -502,21 +502,21 @@ public class Statistics {
 		case DEGREE:
 			drawDegreeGraph(g, graphPanel); break;
 		case NUM_COMPONENTS:
-			drawNumComponentsGraph(g, graphPanel); break;
+			drawSingleLineGraph(g, graphPanel, numComponents, maxNumComponents); break;
 		case LARGEST_COMPONENT:
-			drawLargestComponentGraph(g, graphPanel); break;
+			drawSingleLineGraph(g, graphPanel, maxComponentSizes, maxMaxComponentSize / (double) numPeople); break;
 		case CONNECTIONS_PER_NODE:
-			drawConnectionsPerNodeGraph(g, graphPanel); break;
+			drawSingleLineGraph(g, graphPanel, numHardConnections, maxNumHardConnections); break;
 		case HARD_SOFT_RATIO:
-			drawHardSoftRatioGraph(g, graphPanel); break;
+			drawSingleLineGraph(g, graphPanel, hardSoftRatio, maxHardSoftRatio); break;
 		case CLUSTERING_COEFF:
-			drawClusteringCoeffGraph(g, graphPanel); break;
+			drawSingleLineGraph(g, graphPanel, clusteringCoeff, maxClusteringCoeff); break;
 		case LARGEST_EDGE_DIST:
-			drawLargestEdgeLengthGraph(g, graphPanel); break;
+			drawSingleLineGraph(g, graphPanel, largestPhysicalDistance, maxLargestPhysicalDistance); break;
 		case AVG_EDGE_DIST:
-			drawAverageEdgeLengthGraph(g, graphPanel); break;
+			drawSingleLineGraph(g, graphPanel, averagePhysicalDistance, maxAveragePhysicalDistance); break;
 		case INFECTIOUS_COLLISIONS:
-			drawCollisionsGraph(g, graphPanel); break;
+			drawSingleLineGraph(g, graphPanel, infectiousCollisions, maxInfectiousCollisions); break;
 		}
 	}
 
@@ -619,43 +619,6 @@ public class Statistics {
 		}
 	}
 
-	private static void drawNumComponentsGraph(Graphics g, GraphPanel graphPanel) {
-		drawSingleLineGraph(g, graphPanel, numComponents, maxNumComponents);
-	}
-
-	private static void drawLargestComponentGraph(Graphics g,
-			GraphPanel graphPanel) {
-		drawSingleLineGraph(g, graphPanel, maxComponentSizes, maxMaxComponentSize / (double) numPeople);
-	}
-
-	private static void drawConnectionsPerNodeGraph(Graphics g,
-			GraphPanel graphPanel) {
-		drawSingleLineGraph(g, graphPanel, numHardConnections, maxNumHardConnections);
-	}
-
-	private static void drawHardSoftRatioGraph(Graphics g, GraphPanel graphPanel) {
-		drawSingleLineGraph(g, graphPanel, hardSoftRatio, maxHardSoftRatio);
-	}
-
-	private static void drawClusteringCoeffGraph(Graphics g,
-			GraphPanel graphPanel) {
-		drawSingleLineGraph(g, graphPanel, clusteringCoeff, maxClusteringCoeff);
-	}
-
-	private static void drawLargestEdgeLengthGraph(Graphics g,
-			GraphPanel graphPanel) {
-		drawSingleLineGraph(g, graphPanel, largestPhysicalDistance, maxLargestPhysicalDistance);
-	}
-
-	private static void drawAverageEdgeLengthGraph(Graphics g,
-			GraphPanel graphPanel) {
-		drawSingleLineGraph(g, graphPanel, averagePhysicalDistance, maxAveragePhysicalDistance);
-	}
-	
-	private static void drawCollisionsGraph(Graphics g, GraphPanel graphPanel) {
-		drawSingleLineGraph(g, graphPanel, infectiousCollisions, maxInfectiousCollisions);
-	}
-
 	private static void drawSingleLineGraph(
 			Graphics g,
 			GraphPanel graphPanel,
@@ -737,6 +700,119 @@ public class Statistics {
 			int y2 = (int) b.getY() + Person.RADIUS;
 			g.drawLine(x1, y1, x2, y2);
 		}
+	}
+	
+	public static String exportData() {
+		switch (graphType) {
+		case COUNT:
+			return exportCountData();
+		case DEGREE:
+			return exportDegreeData();
+		case NUM_COMPONENTS:
+			return "Seconds,Number of components"+ exportSingleUnitData(numComponents);
+		case LARGEST_COMPONENT:
+			return "Seconds,Largest component - percent of whole"+ exportSingleUnitData(maxComponentSizes);
+		case CONNECTIONS_PER_NODE:
+			return "Seconds,"+ exportSingleUnitData(numHardConnections);
+		case HARD_SOFT_RATIO:
+			return "Seconds,"+ exportSingleUnitData(hardSoftRatio);
+		case CLUSTERING_COEFF:
+			return "Seconds,"+ exportSingleUnitData(clusteringCoeff);
+		case LARGEST_EDGE_DIST:
+			return "Seconds,"+ exportSingleUnitData(largestPhysicalDistance);
+		case AVG_EDGE_DIST:
+			return "Seconds,"+ exportSingleUnitData(averagePhysicalDistance);
+		case INFECTIOUS_COLLISIONS:
+		default:
+			return "Seconds,"+ exportSingleUnitData(infectiousCollisions);
+		}
+	}
+	
+	private static String exportCountData() {
+		// Reverse the map.
+		HashSet<Virus> viruses = new HashSet<Virus>();
+		for (Map.Entry<Long, HashMap<Virus, Integer>> e : virusCount.entrySet()) {
+			for (Map.Entry<Virus, Integer> ee : e.getValue().entrySet()) {
+				Virus virus = ee.getKey();
+				viruses.add(virus);
+			}
+		}
+		// Output the data.
+		String output = "seconds,";
+		int size = viruses.size(), i = 0;
+		for (Virus virus : viruses) {
+			i++;
+			output += virus;
+			if (i == size)
+				output += "\n";
+			else
+				output += ",";
+		}
+		for (Map.Entry<Long, HashMap<Virus, Integer>> e : virusCount.entrySet()) {
+			long time = e.getKey();
+			output += (time / 1000.0) +",";
+			int s = e.getValue().size(), j = 0;
+			for (Map.Entry<Virus, Integer> ee : e.getValue().entrySet()) {
+				j++;
+				int count = ee.getValue();
+				output += count;
+				if (j == s)
+					output += "\n";
+				else
+					output += ",";
+			}
+		}
+		return output;
+	}
+
+	private static String exportDegreeData() {
+		// Calculate connections per node
+		HashMap<Person, Integer> connectionsPerNode = new HashMap<Person, Integer>();
+		for (Person[] connection : hardConnections) {
+			for (Person p : connection) {
+				int count = 1;
+				if (connectionsPerNode.containsKey(p))
+					count = connectionsPerNode.get(p)+1;
+				connectionsPerNode.put(p, count);
+			}
+		}
+		// Map degree to # nodes with that degree
+		int maxCount = 0, maxDegree = 0;
+		TreeMap<Integer, Integer> connectionCounts = new TreeMap<Integer, Integer>();
+		for (Map.Entry<Person, Integer> e : connectionsPerNode.entrySet()) {
+			int count = 1;
+			if (connectionCounts.containsKey(e.getValue()))
+				count = connectionCounts.get(e.getValue())+1;
+			if (count > maxCount)
+				maxCount = count;
+			if (e.getValue() > maxDegree)
+				maxDegree = e.getValue();
+			connectionCounts.put(e.getValue(), count);
+		}
+		connectionCounts.put(0, numPeople - connectionsPerNode.size());
+		// Output
+		String output = "Degree,Count\n";
+		for (int i = 0; i <= maxDegree; i++) {
+			int count = 0;
+			if (connectionCounts.containsKey(i))
+				count = connectionCounts.get(i);
+			output += i +","+ count;
+			if (i != maxDegree)
+				output += "\n";
+		}
+		return output;
+	}
+
+	private static String exportSingleUnitData(TreeMap<Long, Double> map) {
+		String output = "\n";
+		int size = map.size(), i = 0;
+		for (Map.Entry<Long, Double> e : map.entrySet()) {
+			i++;
+			output += (e.getKey() / 1000.0) +","+ e.getValue();
+			if (i != size)
+				output += "\n";
+		}
+		return output.substring(0, output.length()-1); // chop off the final \n
 	}
 
 	public static void reset() {
