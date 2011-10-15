@@ -27,7 +27,6 @@ import javax.swing.filechooser.FileFilter;
 
 
 // -----------2.5------------- DISPLAYING DATA
-// TODO: Show graph axis labels
 // TODO: Add a button to output graph data in a file when the simulation is complete
 // -----------3.0------------- VIRUS BEHAVIOR
 // TODO: Allow configuring the contagiousness of each virus via the UI
@@ -313,7 +312,7 @@ public class ViralSpread {
         
         // Set up the dialog.
 		dialog = new JDialog(frame);
-		dialog.setMinimumSize(new Dimension(300, 200));
+		dialog.setMinimumSize(new Dimension(350, 250));
 		dialog.setTitle("Number of viruses graph");
 		contents = new GraphPanel();
 		dialog.add(contents, BorderLayout.CENTER);
@@ -342,7 +341,7 @@ public class ViralSpread {
 				"Clustering coefficient",
 				"Largest edge length",
 				"Average edge length",
-				"% infectious collisions",
+				"Percent infectious collisions",
 		};
 		graphTypeSelect = new JComboBox(graphTypeOptions);
 		graphTypeOptionPanel.add(graphTypeSelect);
@@ -371,7 +370,7 @@ public class ViralSpread {
 					Statistics.setGraphType(Statistics.GraphType.LARGEST_EDGE_DIST);
 				if (result.equals("Average edge length"))
 					Statistics.setGraphType(Statistics.GraphType.AVG_EDGE_DIST);
-				if (result.equals("% infectious collisions"))
+				if (result.equals("Percent infectious collisions"))
 					Statistics.setGraphType(Statistics.GraphType.INFECTIOUS_COLLISIONS);
 				gamePanel.repaint();
 			}

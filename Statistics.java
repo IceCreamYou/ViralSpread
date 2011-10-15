@@ -1,4 +1,5 @@
 import java.awt.Color;
+import java.awt.Font;
 import java.awt.Graphics;
 import java.util.Arrays;
 import java.util.Comparator;
@@ -520,19 +521,50 @@ public class Statistics {
 	}
 
 	private static void drawCountGraph(Graphics g, GraphPanel graphPanel) {
-		double scalarX = lastRetrievedVirusCount / (double) graphPanel.getWidth();
-		double scalarY = maxCount / (double) graphPanel.getHeight();
+		g.setFont(new Font("Arial", Font.PLAIN, 10));
+		int graphHeight = graphPanel.getHeight(), graphWidth = graphPanel.getWidth();
+		double scalarX = lastRetrievedVirusCount * 1.05 / graphWidth;
+		double scalarY = maxCount * 1.05 / graphHeight;
+		int xOffset = graphWidth / 42; // 1/42 = (1+(1/1.05))/2
+		int yOffset = graphHeight / 42;
+		int gH = graphHeight - yOffset;
 		HashMap<Color, int[]> lastPoints = new HashMap<Color, int[]>();
 		for (Map.Entry<Long, HashMap<Virus, Integer>> e : virusCount.entrySet()) {
 			for (Map.Entry<Virus, Integer> ee : e.getValue().entrySet()) {
 				Color c = ee.getKey().getColor();
 				g.setColor(c);
 				int[] lastPos = lastPoints.get(c);
-				int x = (int) (e.getKey() / scalarX), y = (int) (graphPanel.getHeight() - (ee.getValue() / scalarY));
+				int x = (int) (e.getKey() / scalarX) + xOffset;
+				int y =  gH - (int) (ee.getValue() / scalarY);
 				if (lastPos != null) {
 					g.drawLine(lastPos[0], lastPos[1], x, y);
 				}
 				lastPoints.put(c, new int[] {x, y});
+			}
+		}
+		g.setColor(Color.BLACK);
+		int count = graphWidth / 80;
+		long lastKey = virusCount.lastKey();
+		for (int i = 0; i <= count; i++) {
+			// The x-axis is always milliseconds, but we want to display seconds
+			if (lastKey < 10000) { // Display one decimal if we're looking at less than 10 seconds
+				double s = Math.round((i / (double) count * lastKey) / 100.0) / 10.0;
+				g.drawString(""+ s, xOffset + i * 80, graphHeight - 2);
+			}
+			else {
+				int s = (int) ((i / (double) count * lastKey) / 1000.0);
+				g.drawString(""+ s, xOffset + i * 80, graphHeight - 2);
+			}
+		}
+		count = graphHeight / 80;
+		for (int i = 0; i <= count; i++) {
+			if (maxCount > 10) {
+				int s = (int) (i / (double) count * maxCount);
+				g.drawString(""+ s, 2, gH - i * 80);
+			}
+			else {
+				double s = Math.round(i / (double) count * maxCount * 10.0) / 10.0;
+				g.drawString(""+ s, 2, gH - i * 80);
 			}
 		}
 	}
@@ -561,15 +593,28 @@ public class Statistics {
 				maxDegree = e.getValue();
 			connectionCounts.put(e.getValue(), count);
 		}
+		connectionCounts.put(0, numPeople - connectionsPerNode.size());
 		// Graph
-		g.setColor(Color.BLACK);
+		g.setFont(new Font("Arial", Font.PLAIN, 10));
+		int graphHeight = graphPanel.getHeight();
 		double interval = graphPanel.getWidth() / (maxDegree+1.0);
-		double scalarY = graphPanel.getHeight() / (maxCount+1.0);
+		double scalarY = graphHeight / (maxCount+1.0);
 		for (int i = 0; i <= maxDegree; i++) {
 			int x = (int) (interval * i + interval * 0.125);
 			if (connectionCounts.containsKey(i)) {
-				int y = (int) (connectionCounts.get(i) * scalarY);
-				g.fillRect(x, graphPanel.getHeight() - y, (int) (interval * 0.75), y);
+				int count = connectionCounts.get(i);
+				int y = (int) (count * scalarY);
+				g.setColor(Color.BLACK);
+				g.fillRect(x, graphHeight - y, (int) (interval * 0.75), y);
+				if (count != 0) {
+					g.drawString(""+ count, (int) (interval * (i + 0.5) - 4), graphHeight - y - 2);
+					g.setColor(Color.WHITE);
+				}
+				g.drawString(""+ i, (int) (interval * (i + 0.5) - 4), graphHeight - 2);
+			}
+			else {
+				g.setColor(Color.BLACK);
+				g.drawString(""+ i, (int) (interval * (i + 0.5) - 4), graphHeight - 2);
 			}
 		}
 	}
@@ -619,14 +664,54 @@ public class Statistics {
 	) {
 		if (map.size() == 0)
 			return;
-		double scalarX = map.lastKey() / (double) graphPanel.getWidth();
-		double scalarY = max / (double) graphPanel.getHeight();
-		int[] lastPoint = new int[] {0, 0};
+		int graphHeight = graphPanel.getHeight(), graphWidth = graphPanel.getWidth();
+		long lastKey = map.lastKey();
+		double scalarX = lastKey * 1.05 / graphWidth;
+		double scalarY = max * 1.05 / graphHeight;
+		int[] lastPoint = null;
 		g.setColor(Color.BLACK);
+		int xOffset = graphWidth / 42; // 1/42 = (1+(1/1.05))/2
+		int yOffset = graphHeight / 42;
+		int gH = graphHeight - yOffset;
 		for (Map.Entry<Long, Double> e : map.entrySet()) {
-			int x = (int) (e.getKey() / scalarX), y = (int) (graphPanel.getHeight() - (e.getValue() / scalarY));
-			g.drawLine(lastPoint[0], lastPoint[1], x, y);
+			int x = (int) (e.getKey() / scalarX) + xOffset;
+			int y = gH - (int) (e.getValue() / scalarY);
+			if (lastPoint != null)
+				g.drawLine(lastPoint[0], lastPoint[1], x, y);
 			lastPoint = new int[] {x, y};
+		}
+		g.setFont(new Font("Arial", Font.PLAIN, 10));
+		int count = graphWidth / 80;
+		for (int i = 0; i <= count; i++) {
+			// The x-axis is always milliseconds, but we want to display seconds
+			if (lastKey < 10000) { // Display one decimal if we're looking at less than 10 seconds
+				double s = Math.round((i / (double) count * lastKey) / 100.0) / 10.0;
+				g.drawString(""+ s, xOffset + i * 80, graphHeight - 2);
+			}
+			else {
+				int s = (int) ((i / (double) count * lastKey) / 1000.0);
+				g.drawString(""+ s, xOffset + i * 80, graphHeight - 2);
+			}
+		}
+		count = graphHeight / 80;
+		for (int i = 0; i <= count; i++) {
+			if (max > 50) {
+				int s = (int) (i / (double) count * max);
+				g.drawString(""+ s, 2, gH - i * 80);
+			}
+			else if (max > 5) {
+				double s = Math.round(i / (double) count * max * 10.0) / 10.0;
+				g.drawString(""+ s, 2, gH - i * 80);
+			}
+			else {
+				double dec = 1000.0;
+				if (max > 8)
+					dec = 10.0;
+				else if (max > 1)
+					dec = 100.0;
+				double s = Math.round(i / (double) count * max * dec) / dec;
+				g.drawString(""+ s, 2, gH - i * 80);
+			}
 		}
 	}
 	
