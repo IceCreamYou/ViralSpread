@@ -44,7 +44,7 @@ public class Person {
 	
 	private void transferVirus(Person ball) {
 		Virus thisVirus = getVirus(), ballVirus = ball.getVirus();
-		if (thisVirus.equalsVirus(ballVirus)) {
+		if (thisVirus.equals(ballVirus)) {
 			Statistics.updateConnections(this, ball);
 		}
 		else {

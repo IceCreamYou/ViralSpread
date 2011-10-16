@@ -17,9 +17,9 @@ public class Statistics {
 	private static ScoreLabel totalCollisions, totalInfectiousCollisions;
 	
 	// time elapsed -> (virus -> count)
-	private static TreeMap<Long, HashMap<Virus, Integer>> virusCount = new TreeMap<Long, HashMap<Virus, Integer>>();
+	private static TreeMap<Long, TreeMap<Virus, Integer>> virusCount = new TreeMap<Long, TreeMap<Virus, Integer>>();
 	// time before virus extinction
-	private static HashMap<Virus, Long> extinction = new HashMap<Virus, Long>();
+	private static TreeMap<Virus, Long> extinction = new TreeMap<Virus, Long>();
 	
 	private static HashSet<Person[]> hardConnections = new HashSet<Person[]>();
 	private static HashSet<Person[]> softConnections = new HashSet<Person[]>();
@@ -58,7 +58,7 @@ public class Statistics {
 	}
 	
 	public static void setupPeople(Person[] people) {
-		HashMap<Virus, Integer> viruses = new HashMap<Virus, Integer>();
+		TreeMap<Virus, Integer> viruses = new TreeMap<Virus, Integer>();
 		for (Person p : people) {
 			Virus v = p.getVirus();
 			Integer i = viruses.get(v);
@@ -82,15 +82,15 @@ public class Statistics {
 	}
 	
 	public static void transferVirus(Virus lost, Virus gained) {
-		HashMap<Virus, Integer> v = virusCount.get(lastRetrievedVirusCount);
-		HashMap<Virus, Integer> viruses = new HashMap<Virus, Integer>();
+		TreeMap<Virus, Integer> v = virusCount.get(lastRetrievedVirusCount);
+		TreeMap<Virus, Integer> viruses = new TreeMap<Virus, Integer>();
 		lastRetrievedVirusCount = stopWatch.getElapsedTime();
 		for (Map.Entry<Virus, Integer> e : v.entrySet()) {
 			Virus key = e.getKey();
 			int value = e.getValue();
-			if (key.equalsVirus(lost))
+			if (key.equals(lost))
 				value--;
-			if (key.equalsVirus(gained))
+			if (key.equals(gained))
 				value++;
 			if (value == 0 && extinction.get(key) == null)
 				extinction.put(key, lastRetrievedVirusCount);
@@ -103,7 +103,7 @@ public class Statistics {
 	}
 	
 	public static void updateConnections(Person infected, Person infector) {
-		boolean sameColor = (infected.getVirus().equalsVirus(infector.getVirus()));
+		boolean sameColor = (infected.getVirus().equals(infector.getVirus()));
 		boolean sameColorConnectionExists = false;
 		Iterator<Person[]> it = hardConnections.iterator();
 		while (it.hasNext()) {
@@ -263,7 +263,7 @@ public class Statistics {
 		return seconds +" second"+ (seconds == 1 ? "" : "s");
 	}
 	
-	public static HashMap<Virus, Integer> getVirusCounts() {
+	public static TreeMap<Virus, Integer> getVirusCounts() {
 		return virusCount.get(lastRetrievedVirusCount);
 	}
 
@@ -444,7 +444,7 @@ public class Statistics {
 	
 	private static VirusStats[] getVirusStats() {
 		TreeMap<Integer, LinkedList<Virus>> invert = new TreeMap<Integer, LinkedList<Virus>>();
-		HashMap<Virus, Integer> virusCounts = getVirusCounts();
+		TreeMap<Virus, Integer> virusCounts = getVirusCounts();
 		// Invert the map
 		for (Entry<Virus, Integer> entry : virusCounts.entrySet()) {
 			int count = entry.getValue();
@@ -529,7 +529,7 @@ public class Statistics {
 		int yOffset = graphHeight / 42;
 		int gH = graphHeight - yOffset;
 		HashMap<Color, int[]> lastPoints = new HashMap<Color, int[]>();
-		for (Map.Entry<Long, HashMap<Virus, Integer>> e : virusCount.entrySet()) {
+		for (Map.Entry<Long, TreeMap<Virus, Integer>> e : virusCount.entrySet()) {
 			for (Map.Entry<Virus, Integer> ee : e.getValue().entrySet()) {
 				Color c = ee.getKey().getColor();
 				g.setColor(c);
@@ -729,18 +729,9 @@ public class Statistics {
 	}
 	
 	private static String exportCountData() {
-		// Reverse the map.
-		HashSet<Virus> viruses = new HashSet<Virus>();
-		for (Map.Entry<Long, HashMap<Virus, Integer>> e : virusCount.entrySet()) {
-			for (Map.Entry<Virus, Integer> ee : e.getValue().entrySet()) {
-				Virus virus = ee.getKey();
-				viruses.add(virus);
-			}
-		}
-		// Output the data.
 		String output = "seconds,";
-		int size = viruses.size(), i = 0;
-		for (Virus virus : viruses) {
+		int size = virusCount.lastEntry().getValue().size(), i = 0;
+		for (Virus virus : virusCount.lastEntry().getValue().keySet()) {
 			i++;
 			output += virus;
 			if (i == size)
@@ -748,7 +739,7 @@ public class Statistics {
 			else
 				output += ",";
 		}
-		for (Map.Entry<Long, HashMap<Virus, Integer>> e : virusCount.entrySet()) {
+		for (Map.Entry<Long, TreeMap<Virus, Integer>> e : virusCount.entrySet()) {
 			long time = e.getKey();
 			output += (time / 1000.0) +",";
 			int s = e.getValue().size(), j = 0;
@@ -818,8 +809,8 @@ public class Statistics {
 	public static void reset() {
 		totalCollisions.resetValue();
 		totalInfectiousCollisions.resetValue();
-		virusCount = new TreeMap<Long, HashMap<Virus, Integer>>();
-		extinction = new HashMap<Virus, Long>();
+		virusCount = new TreeMap<Long, TreeMap<Virus, Integer>>();
+		extinction = new TreeMap<Virus, Long>();
 		hardConnections = new HashSet<Person[]>();
 		softConnections = new HashSet<Person[]>();
 		connectionCounts = new HashMap<Person, Integer>();
