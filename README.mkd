@@ -10,3 +10,8 @@ Click on the "Show graphs" button to view charts of the simulation and export
 data to Excel or other software.
 
 Recommended screen size is at least 1280x1024.
+
+----
+
+This software was written by Isaac Sukin and is released to the public domain.
+http://www.isaacsukin.com/
